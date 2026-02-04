@@ -5,9 +5,9 @@ body:
     attributes:
       value: |
         Before submitting an issue:
-          1. Validate you are running the [latest version of the integration](https://github.com/natekspencer/hacs-vivint/releases)
+          1. Validate you are running the [latest version of the integration](https://github.com/natekspencer/ha-vivint/releases)
           2. Open the official Vivint app and test if the same functionality works there
-          3. Search [existing issues](https://github.com/natekspencer/hacs-vivint/issues) (open and recently closed) to see if what you are experiencing has already been reported
+          3. Search [existing issues](https://github.com/natekspencer/ha-vivint/issues) (open and recently closed) to see if what you are experiencing has already been reported
   - type: textarea
     validations:
       required: true
@@ -29,7 +29,7 @@ body:
       label: What version of Home Assistant Core are you running?
       placeholder: core-
       description: >
-        Can be found in: [Settings ⇒ System ⇒ Repairs ⇒ Three Dots in Upper Right ⇒ System information](https://my.home-assistant.io/redirect/system_health/).  
+        Can be found in: [Settings ⇒ System ⇒ Repairs ⇒ Three Dots in Upper Right ⇒ System information](https://my.home-assistant.io/redirect/system_health/).
         [![Open your Home Assistant instance and show the system information.](https://my.home-assistant.io/badges/system_health.svg)](https://my.home-assistant.io/redirect/system_health/)
   - type: input
     attributes:
@@ -41,9 +41,9 @@ body:
     attributes:
       label: What version of the Vivint integration do you have installed?
       description: >
-        Can be found in HACS  
-        [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=natekspencer&repository=hacs-vivint&category=integration)  
-        You can find the latest release at: https://github.com/natekspencer/hacs-vivint/releases  
+        Can be found in HACS
+        [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=natekspencer&repository=ha-vivint&category=integration)
+        You can find the latest release at: https://github.com/natekspencer/ha-vivint/releases
         If you do not have the latest version installed, do not submit a ticket until you have updated.
         If that still does not work, then proceed with creating a ticket.
   - type: markdown

@@ -1,15 +1,27 @@
 {
   "domain": "vivint",
   "name": "Vivint",
-  "codeowners": ["@natekspencer"],
+  "codeowners": [
+    "@natekspencer"
+  ],
   "config_flow": true,
-  "dependencies": ["ffmpeg"],
-  "documentation": "https://github.com/natekspencer/hacs-vivint",
+  "dependencies": [
+    "ffmpeg"
+  ],
+  "documentation": "https://github.com/natekspencer/ha-vivint",
   "integration_type": "hub",
   "iot_class": "cloud_push",
-  "issue_tracker": "https://github.com/natekspencer/hacs-vivint/issues",
-  "loggers": ["custom_components.vivint", "vivintpy"],
-  "requirements": ["vivintpy==2025.0.2"],
+  "issue_tracker": "https://github.com/natekspencer/ha-vivint/issues",
+  "loggers": [
+    "custom_components.vivint",
+    "vivintpy"
+  ],
+  "requirements": [
+    "vivintpy==2025.0.2"
+  ],
   "version": "0.0.0",
-  "zeroconf": ["_vivint-ODC300._tcp.local.", "_vivint-DBC350._tcp.local."]
+  "zeroconf": [
+    "_vivint-ODC300._tcp.local.",
+    "_vivint-DBC350._tcp.local."
+  ]
 }

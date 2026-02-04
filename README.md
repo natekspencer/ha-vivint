@@ -1,6 +1,6 @@
-![Release](https://img.shields.io/github/v/release/natekspencer/hacs-vivint?style=for-the-badge)
-![Downloads](https://img.shields.io/github/downloads/natekspencer/hacs-vivint/total?style=for-the-badge)
-![Latest Downloads](https://img.shields.io/github/downloads/natekspencer/hacs-vivint/latest/total?style=for-the-badge)
+![Release](https://img.shields.io/github/v/release/natekspencer/ha-vivint?style=for-the-badge)
+![Downloads](https://img.shields.io/github/downloads/natekspencer/ha-vivint/total?style=for-the-badge)
+![Latest Downloads](https://img.shields.io/github/downloads/natekspencer/ha-vivint/latest/total?style=for-the-badge)
 [![Buy Me A Coffee/Beer](https://img.shields.io/badge/Buy_Me_A_☕/🍺-F16061?style=for-the-badge&logo=ko-fi&logoColor=white&labelColor=grey)](https://ko-fi.com/natekspencer)
 
 <picture>
@@ -17,7 +17,6 @@ Home Assistant integration for a Vivint home security system.
 There are two main ways to install this custom component within your Home Assistant instance:
 
 1. Using HACS (see https://hacs.xyz/ for installation instructions if you do not already have it installed):
-
    1. From within Home Assistant, click on the link to **HACS**
    2. Click on **Integrations**
    3. Click on the vertical ellipsis in the top right and select **Custom repositories**
@@ -64,4 +63,6 @@ If you don't already own a Vivint system, please consider using [my referal code
 
 If you already own a Vivint system and still want to donate, consider buying me a coffee ☕ (or beer 🍺) instead by using the link below:
 
-<a href='https://ko-fi.com/natekspencer' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' />
+[![Support me on ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)][ko-fi]
+
+[ko-fi]: https://ko-fi.com/natekspencer
