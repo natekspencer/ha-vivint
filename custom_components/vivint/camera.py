@@ -131,7 +131,7 @@ class VivintCameraEntity(VivintEntity, Camera):
                 width=width,
                 height=height,
             )
-        except:  # pylint:disable=bare-except
+        except:  # pylint:disable=bare-except  # noqa: E722
             _LOGGER.debug("Could not retrieve latest image for %s", self.name)
 
         return self.__last_image
