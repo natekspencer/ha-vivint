@@ -1,8 +1,5 @@
 # Home Assistant
-homeassistant>=2025.1
-python-dateutil
-numpy
-PyTurboJPEG
+homeassistant>=2025.5.0
 
 # Integration
 vivintpy
@@ -11,4 +8,4 @@ vivintpy
 colorlog
 pip>=21.0
 pre-commit
-ruff
+ruff>=0.15

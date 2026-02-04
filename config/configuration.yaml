@@ -1,14 +1,9 @@
 # Limited configuration instead of default_config
 # https://www.home-assistant.io/integrations/default_config
-automation:
-frontend:
-history:
-isal:
-logbook:
-zeroconf:
+default_config:
 
 homeassistant:
-  name: HACS-Vivint
+  name: Vivint for Home Assistant
   auth_providers:
     - type: trusted_networks
       trusted_networks:
