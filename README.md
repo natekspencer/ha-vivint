@@ -85,7 +85,7 @@ I maintain this Home Assistant integration in my spare time. If you find it usef
 - ⭐ [Star this project](https://github.com/natekspencer/ha-vivint)
 - 📦 If you’d like to support in other ways, such as donating hardware for testing, feel free to [reach out to me](https://github.com/natekspencer)
 
-If you don't already own a Vivint system, please consider using [my referal code (35fr23sv)](https://www.vivint.com/get?refCode=35fr23sv&v=200) and get a free Doorbell Camera Pro from Vivint (as well as a tip to me in appreciation)! You can also call (855) 747-7199 and mention referral code `35fr23sv`.
+If you don't already own a Vivint system, please consider using [my referral code (35fr23sv)](https://www.vivint.com/get?refCode=35fr23sv&v=200) and get a free Doorbell Camera Pro from Vivint (as well as a tip to me in appreciation)! You can also call (855) 747-7199 and mention referral code `35fr23sv`.
 
 ## 📈 Star History
 
