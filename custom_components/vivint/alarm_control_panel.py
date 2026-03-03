@@ -114,6 +114,10 @@ class VivintAlarmControlPanelEntity(VivintEntity, AlarmControlPanelEntity):
             return {"arming_mode": "away"}
         if self.device.state == ArmedState.ARMING_STAY_IN_EXIT_DELAY:
             return {"arming_mode": "home"}
+        if self.device.state == ArmedState.ARMED_AWAY_IN_ENTRY_DELAY:
+            return {"pending_mode": "away"}
+        if self.device.state == ArmedState.ARMED_STAY_IN_ENTRY_DELAY:
+            return {"pending_mode": "home"}
         return {}
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
