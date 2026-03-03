@@ -19,7 +19,13 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import VivintConfigEntry
-from .const import CONF_DISARM_CODE, DOMAIN
+from .const import (
+    CONF_DISARM_CODE,
+    CONF_EXIT_DELAY_AWAY,
+    CONF_EXIT_DELAY_HOME,
+    DEFAULT_EXIT_DELAY,
+    DOMAIN,
+)
 from .hub import VivintEntity, VivintHub
 
 ARMED_STATE_MAP = {
@@ -46,12 +52,18 @@ async def async_setup_entry(
     entities = []
     hub: VivintHub = entry.runtime_data
     disarm_code = entry.options.get(CONF_DISARM_CODE)
+    exit_delay_home = entry.options.get(CONF_EXIT_DELAY_HOME, DEFAULT_EXIT_DELAY)
+    exit_delay_away = entry.options.get(CONF_EXIT_DELAY_AWAY, DEFAULT_EXIT_DELAY)
 
     for system in hub.account.systems:
         for device in system.alarm_panels:
             entities.append(
                 VivintAlarmControlPanelEntity(
-                    device=device, hub=hub, disarm_code=disarm_code
+                    device=device,
+                    hub=hub,
+                    disarm_code=disarm_code,
+                    exit_delay_home=exit_delay_home,
+                    exit_delay_away=exit_delay_away,
                 )
             )
 
@@ -74,11 +86,18 @@ class VivintAlarmControlPanelEntity(VivintEntity, AlarmControlPanelEntity):
     _attr_supported_features = Feature.ARM_HOME | Feature.ARM_AWAY | Feature.TRIGGER
 
     def __init__(
-        self, device: AlarmPanel, hub: VivintHub, disarm_code: str | None
+        self,
+        device: AlarmPanel,
+        hub: VivintHub,
+        disarm_code: str | None,
+        exit_delay_home: int = 0,
+        exit_delay_away: int = 0,
     ) -> None:
         """Create the entity."""
         super().__init__(device, hub)
         self._attr_unique_id = str(self.device.id)
+        self._exit_delay_home = exit_delay_home
+        self._exit_delay_away = exit_delay_away
         if disarm_code:
             self._attr_code_format = CodeFormat.NUMBER
             self._disarm_code = disarm_code
@@ -88,6 +107,15 @@ class VivintAlarmControlPanelEntity(VivintEntity, AlarmControlPanelEntity):
         """Return the current alarm control panel entity state."""
         return ARMED_STATE_MAP.get(self.device.state)
 
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Return extra state attributes."""
+        if self.device.state == ArmedState.ARMING_AWAY_IN_EXIT_DELAY:
+            return {"arming_mode": "away"}
+        if self.device.state == ArmedState.ARMING_STAY_IN_EXIT_DELAY:
+            return {"arming_mode": "home"}
+        return {}
+
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         """Send disarm command."""
         if not self.code_format or code == self._disarm_code:
@@ -95,11 +123,11 @@ class VivintAlarmControlPanelEntity(VivintEntity, AlarmControlPanelEntity):
 
     async def async_alarm_arm_home(self, code: str | None = None) -> None:
         """Send arm home command."""
-        await self.device.arm_stay()
+        await self.device.arm_stay(exit_delay=self._exit_delay_home)
 
     async def async_alarm_arm_away(self, code: str | None = None) -> None:
         """Send arm away command."""
-        await self.device.arm_away()
+        await self.device.arm_away(exit_delay=self._exit_delay_away)
 
     async def async_alarm_trigger(self, code: str | None = None) -> None:
         """Send alarm trigger command."""

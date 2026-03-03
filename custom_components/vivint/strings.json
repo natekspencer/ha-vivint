@@ -39,6 +39,8 @@
       "init": {
         "data": {
           "disarm_code": "Disarm code",
+          "exit_delay_home": "Arm home exit delay (seconds)",
+          "exit_delay_away": "Arm away exit delay (seconds)",
           "hd_stream": "Stream camera in HD",
           "rtsp_stream": "Select which RTSP camera stream to use",
           "rtsp_url_logging": "Log camera RTSP URLs (this contains potentially sensitive information)"

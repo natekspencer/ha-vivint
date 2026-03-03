@@ -28,11 +28,14 @@ from homeassistant.helpers.schema_config_entry_flow import (
 
 from .const import (
     CONF_DISARM_CODE,
+    CONF_EXIT_DELAY_AWAY,
+    CONF_EXIT_DELAY_HOME,
     CONF_HD_STREAM,
     CONF_MFA,
     CONF_REFRESH_TOKEN,
     CONF_RTSP_STREAM,
     CONF_RTSP_URL_LOGGING,
+    DEFAULT_EXIT_DELAY,
     DEFAULT_HD_STREAM,
     DEFAULT_RTSP_STREAM,
     DEFAULT_RTSP_URL_LOGGING,
@@ -63,6 +66,12 @@ STEP_MFA_DATA_SCHEMA = vol.Schema({vol.Required(CONF_MFA): str})
 OPTIONS_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_DISARM_CODE, default=""): str,
+        vol.Optional(CONF_EXIT_DELAY_HOME, default=DEFAULT_EXIT_DELAY): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=255)
+        ),
+        vol.Optional(CONF_EXIT_DELAY_AWAY, default=DEFAULT_EXIT_DELAY): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=255)
+        ),
         vol.Optional(CONF_HD_STREAM, default=DEFAULT_HD_STREAM): bool,
         vol.Optional(CONF_RTSP_STREAM, default=DEFAULT_RTSP_STREAM): vol.In(
             RTSP_STREAM_TYPES
