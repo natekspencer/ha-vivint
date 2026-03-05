@@ -90,8 +90,8 @@ class VivintAlarmControlPanelEntity(VivintEntity, AlarmControlPanelEntity):
         device: AlarmPanel,
         hub: VivintHub,
         disarm_code: str | None,
-        exit_delay_home: int = 0,
-        exit_delay_away: int = 0,
+        exit_delay_home: int = DEFAULT_EXIT_DELAY,
+        exit_delay_away: int = DEFAULT_EXIT_DELAY,
     ) -> None:
         """Create the entity."""
         super().__init__(device, hub)
