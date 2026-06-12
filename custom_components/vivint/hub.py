@@ -166,6 +166,7 @@ class VivintBaseEntity(CoordinatorEntity):
             name=device.name if device.name else type(device).__name__,
             manufacturer=device.manufacturer,
             model=device.model,
+            serial_number=device.serial_number,
             sw_version=device.software_version,
             via_device=(
                 None
@@ -199,6 +200,7 @@ class VivintEntity(CoordinatorEntity):
             name=device.name if device.name else type(device).__name__,
             manufacturer=device.manufacturer,
             model=device.model,
+            serial_number=device.serial_number,
             sw_version=device.software_version,
             via_device=(
                 None

@@ -17,7 +17,7 @@
     "vivintpy"
   ],
   "requirements": [
-    "vivintpy==2026.0.4"
+    "vivintpy==2026.0.5"
   ],
   "version": "0.0.0",
   "zeroconf": [
