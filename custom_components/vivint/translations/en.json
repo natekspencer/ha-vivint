@@ -45,7 +45,9 @@
         }
       }
     },
-    "error": { "disarm_code_invalid": "Disarm code is invalid" }
+    "error": {
+      "disarm_code_invalid": "Disarm code is invalid"
+    }
   },
   "device_automation": {
     "trigger_type": {
@@ -59,7 +61,16 @@
         "state_attributes": {
           "event_type": {
             "state": {
-              "doorbell_ding": "Doorbell pressed"
+              "ring": "Ring"
+            }
+          }
+        }
+      },
+      "motion": {
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "motion_detected": "Motion detected"
             }
           }
         }
