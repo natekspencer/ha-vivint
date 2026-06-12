@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import logging
 
-from vivintpy.devices.camera import DOORBELL_DING, Camera
+from vivintpy.devices.camera import MOTION_DETECTED, Camera
 from vivintpy.enums import CapabilityCategoryType
 
 from homeassistant.components.event import (
+    DoorbellEventType,
     EventDeviceClass,
     EventEntity,
     EventEntityDescription,
@@ -25,7 +26,13 @@ DOORBELL_DESCRIPTION = EventEntityDescription(
     key="doorbell",
     translation_key="doorbell",
     device_class=EventDeviceClass.DOORBELL,
-    event_types=[DOORBELL_DING],
+    event_types=[DoorbellEventType.RING],
+)
+MOTION_DESCRIPTION = EventEntityDescription(
+    key="motion",
+    translation_key="motion",
+    device_class=EventDeviceClass.MOTION,
+    event_types=[MOTION_DETECTED],
 )
 
 
@@ -41,6 +48,13 @@ async def async_setup_entry(
     for system in hub.account.systems:
         for alarm_panel in system.alarm_panels:
             for device in alarm_panel.get_devices([Camera]):
+                entities.append(
+                    VivintEventEntity(
+                        device=device,
+                        hub=hub,
+                        entity_description=MOTION_DESCRIPTION,
+                    )
+                )
                 if CapabilityCategoryType.DOORBELL in device.capabilities:
                     entities.append(
                         VivintEventEntity(
