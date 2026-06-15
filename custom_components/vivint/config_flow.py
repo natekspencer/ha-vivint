@@ -25,6 +25,11 @@ from homeassistant.helpers.schema_config_entry_flow import (
     SchemaFlowFormStep,
     SchemaOptionsFlowHandler,
 )
+from homeassistant.helpers.selector import (
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
 
 from .const import (
     CONF_DISARM_CODE,
@@ -62,7 +67,9 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 STEP_MFA_DATA_SCHEMA = vol.Schema({vol.Required(CONF_MFA): str})
 OPTIONS_SCHEMA = vol.Schema(
     {
-        vol.Optional(CONF_DISARM_CODE, default=""): str,
+        vol.Optional(CONF_DISARM_CODE, default=""): TextSelector(
+            TextSelectorConfig(type=TextSelectorType.PASSWORD)
+        ),
         vol.Optional(CONF_HD_STREAM, default=DEFAULT_HD_STREAM): bool,
         vol.Optional(CONF_RTSP_STREAM, default=DEFAULT_RTSP_STREAM): vol.In(
             RTSP_STREAM_TYPES
