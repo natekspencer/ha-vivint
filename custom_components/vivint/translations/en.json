@@ -46,7 +46,7 @@
       }
     },
     "error": {
-      "disarm_code_invalid": "Disarm code is invalid"
+      "disarm_code_invalid": "Disarm code can only contain digits"
     }
   },
   "device_automation": {
