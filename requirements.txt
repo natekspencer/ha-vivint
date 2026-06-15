@@ -1,5 +1,5 @@
 # Home Assistant
-homeassistant>=2025.5.0
+homeassistant>=2026.6.0
 
 # Integration
 vivintpy
