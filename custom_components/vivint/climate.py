@@ -196,7 +196,7 @@ class VivintClimate(VivintEntity, ClimateEntity):
     @property
     def hvac_action(self) -> HVACAction:
         """Return the current running hvac operation if supported."""
-        return VIVINT_HVAC_STATUS_MAP.get(self.device.operating_mode, HVACAction.IDLE)
+        return VIVINT_HVAC_STATUS_MAP.get(self.device.operating_state, HVACAction.IDLE)
 
     @property
     def fan_mode(self) -> str:
