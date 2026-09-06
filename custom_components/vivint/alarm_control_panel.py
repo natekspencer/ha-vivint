@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from vivintpy.devices.alarm_panel import AlarmPanel
 from vivintpy.enums import ArmedState

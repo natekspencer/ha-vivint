@@ -8,4 +8,4 @@ vivintpy
 colorlog
 pip>=21.0
 pre-commit
-ruff>=0.15
+ruff>=0.16.5

@@ -134,7 +134,7 @@ ONLINE_SENSOR_ENTITY_DESCRIPTION = VivintBinarySensorEntityDescription(
     device_class=BinarySensorDeviceClass.CONNECTIVITY,
     entity_category=EntityCategory.DIAGNOSTIC,
     name="Online",
-    is_on=lambda device: getattr(device, "is_online"),
+    is_on=lambda device: device.is_online,
 )
 
 
