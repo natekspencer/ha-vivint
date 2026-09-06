@@ -11,8 +11,8 @@
 <!-- END AUTO-GENERATED HEADER -->
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://brands.home-assistant.io/vivint/dark_logo.png">
-  <img alt="Vivint logo" src="https://brands.home-assistant.io/vivint/logo.png">
+  <source media="(prefers-color-scheme: dark)" srcset="custom_components/vivint/brand/dark_logo.png">
+  <img alt="Vivint logo" src="custom_components/vivint/brand/logo.png">
 </picture>
 
 # Vivint for Home Assistant
