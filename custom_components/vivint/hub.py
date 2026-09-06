@@ -27,6 +27,7 @@ from vivintpy.exceptions import (
 
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo, EntityDescription
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -168,10 +169,14 @@ class VivintBaseEntity(CoordinatorEntity):
             model=device.model,
             serial_number=device.serial_number,
             sw_version=device.software_version,
-            via_device=(
+            via_device_id=(
                 None
                 if isinstance(device, AlarmPanel)
-                else get_device_id(device.alarm_panel)
+                else dr.async_get_device_id_by_identifier(
+                    hub.coordinator.hass,
+                    get_device_id(device.alarm_panel),
+                    config_entry_id=self.coordinator.config_entry.entry_id,
+                )
             ),
         )
 
@@ -202,10 +207,14 @@ class VivintEntity(CoordinatorEntity):
             model=device.model,
             serial_number=device.serial_number,
             sw_version=device.software_version,
-            via_device=(
+            via_device_id=(
                 None
                 if isinstance(device, AlarmPanel)
-                else get_device_id(device.alarm_panel)
+                else dr.async_get_device_id_by_identifier(
+                    hub.coordinator.hass,
+                    get_device_id(device.alarm_panel),
+                    config_entry_id=self.coordinator.config_entry.entry_id,
+                )
             ),
         )
 

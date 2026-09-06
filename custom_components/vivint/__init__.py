@@ -147,7 +147,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> bo
         device for alarm_panel in alarm_panels for device in alarm_panel.devices
     ]
     known_devices = [
-        dev_reg.async_get_device({get_device_id(device)}) for device in all_devices
+        dev_reg.async_get_device_by_identifier(get_device_id(device), entry.entry_id)
+        for device in all_devices
     ]
 
     # Devices that are in the device registry that are not known by the hub can be removed
