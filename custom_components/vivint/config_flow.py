@@ -175,7 +175,7 @@ class VivintConfigFlow(ConfigFlow, domain=DOMAIN):
                 data_schema=STEP_MFA_DATA_SCHEMA,
                 errors={"base": str(err)},
             )
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:  # pylint: disable=broad-except # noqa: BLE001
             _LOGGER.error(ex)
             return self.async_show_form(
                 step_id="mfa",

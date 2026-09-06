@@ -189,7 +189,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> 
             for filename in (".vivintpy_cache.pickle", ".vivintpy_cache_1.pickle"):
                 try:
                     os.remove(hass.config.path(filename))
-                except Exception:
+                except Exception:  # noqa: BLE001,S110
                     pass
 
             hass.config_entries.async_update_entry(entry, minor_version=2)

@@ -51,9 +51,7 @@ def get_device_id(device: VivintDevice) -> tuple[str, str]:
 
 def has_capability(device: VivintDevice, category: Category, capability: Capability):
     """Check if a device has a capability."""
-    if capability in (device.capabilities or {}).get(category, []):
-        return True
-    return False
+    return capability in (device.capabilities or {}).get(category, [])
 
 
 def has_feature(device: VivintDevice, feature: Feature):
@@ -105,14 +103,14 @@ class VivintHub:
                 subscribe_for_realtime_updates=subscribe_for_realtime_updates,
             )
             return self.save_session()
-        except VivintSkyApiMfaRequiredError as ex:
-            raise ex
-        except VivintSkyApiAuthenticationError as ex:
+        except VivintSkyApiMfaRequiredError:
+            raise
+        except VivintSkyApiAuthenticationError:
             _LOGGER.error("Invalid credentials")
-            raise ex
-        except (VivintSkyApiError, ClientResponseError, ClientConnectorError) as ex:
+            raise
+        except (VivintSkyApiError, ClientResponseError, ClientConnectorError):
             _LOGGER.error("Unable to connect to the Vivint API")
-            raise ex
+            raise
 
     async def disconnect(self) -> None:
         """Disconnect from Vivint, close the session and stop listener."""
@@ -130,8 +128,9 @@ class VivintHub:
         try:
             await self.account.verify_mfa(code)
             return self.save_session()
-        except Exception as ex:
-            raise ex
+        except Exception:
+            _LOGGER.error("Error verifying MFA")
+            raise
 
     def save_session(self) -> bool:
         """Save session for reuse."""
