@@ -89,6 +89,6 @@ If you don't already own a Vivint system, please consider using [my referral cod
 
 ## 📈 Star History
 
-[![Star History Chart](https://api.star-history.com/chart?repos=natekspencer/ha-vivint&type=date&legend=top-left&sealed_token=8c-c9DhlmJ24p7RGTSxBBRs-m5La6-kB1QKBJ1uEShGkFdGRkk5KVAMtoC3ahydkObxeWCtRlZZPcBEUTJiduss6DCy4w9Znwb3xpXBnYj-KpwfHT_OBdMi82LKgJ3R3GB4rMDE2Q-ijiGI2YC2SMRxFrEbXUHaYgyPzamtOttJ6UDxc3f06_Fb3RNzt)](https://www.star-history.com/?repos=natekspencer%2Fha-vivint)
+[![Star History Chart](https://api.star-history.com/chart?repos=natekspencer/ha-vivint&type=date&legend=top-left)](https://www.star-history.com/?repos=natekspencer%2Fha-vivint)
 
 <!-- END AUTO-GENERATED FOOTER -->
