@@ -14,7 +14,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set version number
         shell: bash
@@ -29,6 +29,6 @@ jobs:
           zip vivint.zip -r ./
 
       - name: Upload ZIP file to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: ${{ github.workspace }}/custom_components/vivint/vivint.zip
