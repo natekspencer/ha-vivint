@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from vivintpy.devices.camera import Camera as VivintCamera
+from vivintpy.devices.camera import Camera as VivintCamera, RtspUrlType
 
 from homeassistant.components.camera import Camera, CameraEntityFeature
 from homeassistant.components.ffmpeg import async_get_image
@@ -21,11 +21,18 @@ from .const import (
     DEFAULT_RTSP_STREAM,
     DEFAULT_RTSP_URL_LOGGING,
     RTSP_STREAM_DIRECT,
+    RTSP_STREAM_EXTERNAL,
     RTSP_STREAM_INTERNAL,
 )
 from .hub import VivintEntity, VivintHub
 
 _LOGGER = logging.getLogger(__name__)
+
+RTSP_STREAM_URL_TYPE_MAP = {
+    RTSP_STREAM_DIRECT: RtspUrlType.LOCAL,
+    RTSP_STREAM_INTERNAL: RtspUrlType.PANEL,
+    RTSP_STREAM_EXTERNAL: RtspUrlType.EXTERNAL,
+}
 
 
 async def async_setup_entry(
@@ -38,7 +45,9 @@ async def async_setup_entry(
     hub: VivintHub = entry.runtime_data
 
     hd_stream = entry.options.get(CONF_HD_STREAM, DEFAULT_HD_STREAM)
-    rtsp_stream = entry.options.get(CONF_RTSP_STREAM, DEFAULT_RTSP_STREAM)
+    rtsp_stream = RTSP_STREAM_URL_TYPE_MAP.get(
+        entry.options.get(CONF_RTSP_STREAM, DEFAULT_RTSP_STREAM)
+    )
     rtsp_url_logging = entry.options.get(
         CONF_RTSP_URL_LOGGING, DEFAULT_RTSP_URL_LOGGING
     )
@@ -91,7 +100,7 @@ class VivintCameraEntity(VivintEntity, Camera):
         device: VivintCamera,
         hub: VivintHub,
         hd_stream: bool = DEFAULT_HD_STREAM,
-        rtsp_stream: int = DEFAULT_RTSP_STREAM,
+        rtsp_stream: RtspUrlType = RtspUrlType.LOCAL,
     ) -> None:
         """Initialize a Vivint camera."""
         super().__init__(device=device, hub=hub)
@@ -114,10 +123,8 @@ class VivintCameraEntity(VivintEntity, Camera):
         """Return the source of the stream."""
         await self.device.alarm_panel.get_panel_credentials()
         url = self.device.get_rtsp_access_url(self.__rtsp_stream, self.__hd_stream)
-        if not url and self.__rtsp_stream == RTSP_STREAM_DIRECT:
-            url = self.device.get_rtsp_access_url(
-                RTSP_STREAM_INTERNAL, self.__hd_stream
-            )
+        if not url and self.__rtsp_stream == RtspUrlType.LOCAL:
+            url = self.device.get_rtsp_access_url(RtspUrlType.PANEL, self.__hd_stream)
         return url
 
     async def async_camera_image(

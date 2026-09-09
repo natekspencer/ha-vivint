@@ -28,7 +28,15 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from .const import CONF_REFRESH_TOKEN, DOMAIN, EVENT_TYPE
+from .const import (
+    CONF_REFRESH_TOKEN,
+    CONF_RTSP_STREAM,
+    DOMAIN,
+    EVENT_TYPE,
+    RTSP_STREAM_DIRECT,
+    RTSP_STREAM_EXTERNAL,
+    RTSP_STREAM_INTERNAL,
+)
 from .hub import VivintHub, get_device_id
 
 type VivintConfigEntry = ConfigEntry[VivintHub]
@@ -52,6 +60,12 @@ PLATFORMS = [
 ]
 
 ATTR_TYPE = "type"
+
+STREAM_MIGRATION_MAP = {
+    "0": RTSP_STREAM_DIRECT,
+    "1": RTSP_STREAM_INTERNAL,
+    "2": RTSP_STREAM_EXTERNAL,
+}
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> bool:
@@ -194,6 +208,14 @@ async def async_migrate_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> 
                     pass
 
             hass.config_entries.async_update_entry(entry, minor_version=2)
+
+        if entry.minor_version < 3:
+            options = {**entry.options}
+            if (stream := str(options.get(CONF_RTSP_STREAM))) in STREAM_MIGRATION_MAP:
+                options[CONF_RTSP_STREAM] = STREAM_MIGRATION_MAP[stream]
+            hass.config_entries.async_update_entry(
+                entry, minor_version=3, options=options
+            )
 
     _LOGGER.debug(
         "Migration to version %s.%s successful",

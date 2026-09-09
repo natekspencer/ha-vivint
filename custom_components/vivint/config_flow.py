@@ -26,6 +26,9 @@ from homeassistant.helpers.schema_config_entry_flow import (
     SchemaOptionsFlowHandler,
 )
 from homeassistant.helpers.selector import (
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -71,8 +74,14 @@ OPTIONS_SCHEMA = vol.Schema(
             TextSelectorConfig(type=TextSelectorType.PASSWORD)
         ),
         vol.Optional(CONF_HD_STREAM, default=DEFAULT_HD_STREAM): bool,
-        vol.Optional(CONF_RTSP_STREAM, default=DEFAULT_RTSP_STREAM): vol.In(
-            RTSP_STREAM_TYPES
+        vol.Optional(CONF_RTSP_STREAM, default=DEFAULT_RTSP_STREAM): SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=str(k), label=v)
+                    for k, v in RTSP_STREAM_TYPES.items()
+                ],
+                mode="dropdown",
+            )
         ),
         vol.Optional(CONF_RTSP_URL_LOGGING, default=DEFAULT_RTSP_URL_LOGGING): bool,
     }
@@ -86,7 +95,7 @@ class VivintConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Vivint."""
 
     VERSION = 1
-    MINOR_VERSION = 2
+    MINOR_VERSION = 3
 
     def __init__(self) -> None:
         """Initialize a config flow."""
