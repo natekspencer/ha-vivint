@@ -6,6 +6,8 @@ vivintpy
 
 # Development
 colorlog
-pip>=21.0
+isal
+pip>=26.2.1
 pre-commit
-ruff>=0.16.5
+ruff>=0.17.0
+zlib-ng
