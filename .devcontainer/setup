@@ -1,12 +1,25 @@
 #!/usr/bin/env bash
 
-sudo apt-get update && sudo apt-get install ffmpeg -y
-
 set -e
+
+sudo apt-get update
+sudo apt-get install libturbojpeg0 libpcap0.8t64 ffmpeg -y
 
 cd "$(dirname "$0")/.."
 
+# pip installs tools like pre-commit to ~/.local/bin, which may not be on PATH yet
+export PATH="$HOME/.local/bin:$PATH"
+
 python3 -m pip install --requirement requirements.txt --upgrade
+
+# Install the go2rtc binary required by default_config, matching Home Assistant's recommended version
+GO2RTC_CONST=$(python3 -c "import importlib.util; print(importlib.util.find_spec('homeassistant').submodule_search_locations[0])")/components/go2rtc/const.py
+GO2RTC_VERSION=$(grep -oP 'RECOMMENDED_VERSION = "\K[^"]+' "$GO2RTC_CONST")
+GO2RTC_ARCH=$(dpkg --print-architecture)
+if ! command -v go2rtc >/dev/null || [ "$(go2rtc --version 2>&1 | grep -o '[0-9.]\+' | head -1)" != "$GO2RTC_VERSION" ]; then
+    sudo curl -fsSL "https://github.com/AlexxIT/go2rtc/releases/download/v${GO2RTC_VERSION}/go2rtc_linux_${GO2RTC_ARCH}" -o /usr/local/bin/go2rtc
+    sudo chmod +x /usr/local/bin/go2rtc
+fi
 
 pre-commit install
 
