@@ -95,6 +95,7 @@ def build_playlist(parts: list[tuple[DvrRecording, list[DvrSegment]]]) -> str:
 def _overlaps(
     start: datetime, end: datetime, window_start: datetime, window_end: datetime
 ) -> bool:
+    """Return `True` if the time span overlaps the window."""
     return start < window_end and end > window_start
 
 
@@ -116,6 +117,7 @@ class VivintMediaSource(MediaSource):
         self.hass = hass
 
     def _dvr(self, entry_id: str, panel_id: str) -> SpaceMonkeyDvr:
+        """Return the DVR of the Vivint system, or raise if there is none."""
         entry = self.hass.config_entries.async_get_entry(entry_id)
         if entry is None or not hasattr(entry, "runtime_data"):
             raise BrowseError("The Vivint integration is not loaded")
@@ -144,6 +146,7 @@ class VivintMediaSource(MediaSource):
         raise BrowseError(f"Unknown media identifier: {item.identifier}")
 
     async def _browse_cameras(self) -> BrowseMediaSource:
+        """List the enabled cameras of every loaded Vivint DVR."""
         children = []
         for entry in self.hass.config_entries.async_loaded_entries(DOMAIN):
             for system in entry.runtime_data.account.systems:
@@ -179,6 +182,7 @@ class VivintMediaSource(MediaSource):
     async def _browse_days(
         self, dvr: SpaceMonkeyDvr, entry_id: str, panel_id: str, camera_id: int
     ) -> BrowseMediaSource:
+        """List the days of the camera that have recordings."""
         days: set[date] = set()
         for recording in await dvr.get_recordings(camera_id):
             day = dt_util.as_local(recording.start).date()
@@ -219,6 +223,7 @@ class VivintMediaSource(MediaSource):
         camera_id: int,
         day: str,
     ) -> BrowseMediaSource:
+        """List the hours of a day of the camera that have recordings."""
         day_start, day_end = _day_window(datetime.strptime(day, DAY_FORMAT).date())
         recordings = await dvr.get_recordings(camera_id)
 
@@ -299,6 +304,7 @@ class VivintMediaSource(MediaSource):
     async def _segments_between(
         dvr: SpaceMonkeyDvr, camera_id: int, start: datetime, end: datetime
     ) -> list[tuple[DvrRecording, list[DvrSegment]]]:
+        """Return the segments of each recording that fall within the time span."""
         parts = []
         for recording in await dvr.get_recordings(camera_id):
             if not _overlaps(recording.start, recording.end, start, end):

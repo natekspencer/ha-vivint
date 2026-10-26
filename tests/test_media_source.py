@@ -93,10 +93,12 @@ async def entry_fixture(hass: HomeAssistant, dvr: FakeDvr) -> MockConfigEntry:
 
 
 def _item(hass: HomeAssistant, identifier: str | None) -> MediaSourceItem:
+    """Return the media source item for the identifier."""
     return MediaSourceItem(hass, DOMAIN, identifier, None)
 
 
 def _ident(entry: MockConfigEntry, kind: str, *rest: object) -> str:
+    """Return the identifier of an item of the source."""
     return "|".join([kind, entry.entry_id, str(PANEL_ID), *map(str, rest)])
 
 
