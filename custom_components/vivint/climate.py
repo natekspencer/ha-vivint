@@ -13,10 +13,12 @@ from vivintpy.enums import (
     OperatingMode,
     OperatingState,
 )
+from vivintpy.exceptions import VivintSkyApiRateLimitError
 
 from homeassistant.components.climate import (
     ATTR_TARGET_TEMP_HIGH,
     ATTR_TARGET_TEMP_LOW,
+    DOMAIN as CLIMATE_DOMAIN,
     FAN_AUTO,
     FAN_ON,
     ClimateEntity,
@@ -25,11 +27,18 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import VivintConfigEntry
+from .const import DOMAIN
 from .hub import VivintEntity, VivintHub
+
+RATE_LIMIT_MESSAGE = (
+    "Vivint limits how often a thermostat can be changed. Try again in a minute."
+)
 
 # Map Vivint HVAC Mode to Home Assistant value
 VIVINT_HVAC_MODE_MAP = {
@@ -107,10 +116,21 @@ async def async_setup_entry(
                 if isinstance(device, Thermostat):
                     entities.append(VivintClimate(device=device, hub=hub))
 
-    if not entities:
-        return
+    if entities:
+        async_add_entities(entities)
 
-    async_add_entities(entities)
+    @callback
+    def async_add_climate(device: Thermostat) -> None:
+        """Add a thermostat that was discovered after setup."""
+        async_add_entities([VivintClimate(device=device, hub=hub)])
+
+    entry.async_on_unload(
+        async_dispatcher_connect(
+            hass,
+            f"{DOMAIN}_{entry.entry_id}_add_{CLIMATE_DOMAIN}",
+            async_add_climate,
+        )
+    )
 
 
 class VivintClimate(VivintEntity, ClimateEntity):
@@ -205,7 +225,7 @@ class VivintClimate(VivintEntity, ClimateEntity):
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set new target fan mode."""
-        await self.device.set_state(
+        await self._async_set_state(
             **{
                 ThermostatAttribute.FAN_MODE: VIVINT_FAN_INV_MODE_MAP.get(
                     fan_mode, VIVINT_FAN_INV_MODE_MAP.get(self.fan_modes[-1])
@@ -215,7 +235,7 @@ class VivintClimate(VivintEntity, ClimateEntity):
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target hvac mode."""
-        await self.device.set_state(
+        await self._async_set_state(
             **{ThermostatAttribute.OPERATING_MODE: VIVINT_HVAC_INV_MODE_MAP[hvac_mode]}
         )
 
@@ -233,20 +253,30 @@ class VivintClimate(VivintEntity, ClimateEntity):
         low_temp = kwargs.get(ATTR_TARGET_TEMP_LOW)
         high_temp = kwargs.get(ATTR_TARGET_TEMP_HIGH)
 
-        await self.change_target_temperature(
-            ThermostatAttribute.COOL_SET_POINT,
+        cool = self._changed_target(
             temp if self.hvac_mode == HVACMode.COOL else high_temp,
             self.device.cool_set_point,
         )
-        await self.change_target_temperature(
-            ThermostatAttribute.HEAT_SET_POINT,
+        heat = self._changed_target(
             temp if self.hvac_mode == HVACMode.HEAT else low_temp,
             self.device.heat_set_point,
         )
+        if heat is not None or cool is not None:
+            try:
+                await self.device.set_set_points(heat=heat, cool=cool)
+            except VivintSkyApiRateLimitError as err:
+                raise HomeAssistantError(RATE_LIMIT_MESSAGE) from err
 
-    async def change_target_temperature(
-        self, attribute: str, target: float, current: float
-    ) -> bool:
-        """Change target temperature."""
-        if target is not None and abs(target - current) >= 0.5:
-            await self.device.set_state(**{attribute: target})
+    async def _async_set_state(self, **kwargs: Any) -> None:
+        """Change the thermostat, explaining when Vivint is limiting changes."""
+        try:
+            await self.device.set_state(**kwargs)
+        except VivintSkyApiRateLimitError as err:
+            raise HomeAssistantError(RATE_LIMIT_MESSAGE) from err
+
+    @staticmethod
+    def _changed_target(target: float | None, current: float | None) -> float | None:
+        """Return the target if it differs enough from the current set point."""
+        if target is None or (current is not None and abs(target - current) < 0.5):
+            return None
+        return target
