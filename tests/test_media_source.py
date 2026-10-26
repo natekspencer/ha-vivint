@@ -186,10 +186,10 @@ def test_build_playlist_marks_discontinuities() -> None:
         "#EXT-X-TARGETDURATION:14",
         "#EXT-X-MEDIA-SEQUENCE:0",
         "#EXTINF:12.000000,",
-        "a/stream4.ts",
+        "./a/stream4.ts",
         "#EXT-X-DISCONTINUITY",
         "#EXTINF:13.500000,",
-        "b/stream1.ts",
+        "./b/stream1.ts",
         "#EXT-X-ENDLIST",
     ]
 
@@ -216,8 +216,8 @@ async def test_resolve_and_play(
     lines = (await resp.text()).splitlines()
     segments = [line for line in lines if line.endswith(".ts")]
     # Segments 151 to 450 cover the hour exactly, at 12 seconds each.
-    assert segments[0] == f"{RECORDING_ID}/stream151.ts"
-    assert segments[-1] == f"{RECORDING_ID}/stream450.ts"
+    assert segments[0] == f"./{RECORDING_ID}/stream151.ts"
+    assert segments[-1] == f"./{RECORDING_ID}/stream450.ts"
     assert len(segments) == 300
     assert lines[-1] == "#EXT-X-ENDLIST"
 
@@ -265,6 +265,10 @@ async def test_resolve_errors(
     with pytest.raises(Unresolvable):
         await source.async_resolve_media(
             _item(hass, _ident(entry, "HOUR", CAMERA_ID, "bad"))
+        )
+    with pytest.raises(Unresolvable):
+        await source.async_resolve_media(
+            _item(hass, _ident(entry, "HOUR", "abc", "20261024T1800Z"))
         )
     # An hour with no footage.
     with pytest.raises(Unresolvable):
