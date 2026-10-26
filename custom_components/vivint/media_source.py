@@ -85,7 +85,9 @@ def build_playlist(parts: list[tuple[DvrRecording, list[DvrSegment]]]) -> str:
             lines.append("#EXT-X-DISCONTINUITY")
         for segment in segments:
             lines.append(f"#EXTINF:{segment.duration:.6f},")
-            lines.append(f"{recording.id}/stream{segment.number}.ts")
+            # Recording ids look like "2026-10-24-17:30:00", which a client may take for
+            # a URI scheme unless the path is explicitly relative.
+            lines.append(f"./{recording.id}/stream{segment.number}.ts")
     lines.append("#EXT-X-ENDLIST")
     return "\n".join(lines) + "\n"
 
@@ -258,9 +260,10 @@ class VivintMediaSource(MediaSource):
     async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:
         """Build a playlist for an hour of footage and return its URL."""
         try:
-            kind, entry_id, panel_id, camera_id, hour = item.identifier.split("|")
+            kind, entry_id, panel_id, camera, hour = item.identifier.split("|")
             if kind != "HOUR":
                 raise ValueError
+            camera_id = int(camera)
             dvr = self._dvr(entry_id, panel_id)
             start = datetime.strptime(hour, HOUR_FORMAT).replace(tzinfo=UTC)
         except (ValueError, AttributeError, BrowseError) as err:
@@ -268,7 +271,7 @@ class VivintMediaSource(MediaSource):
 
         end = start + timedelta(hours=1)
         try:
-            parts = await self._segments_between(dvr, int(camera_id), start, end)
+            parts = await self._segments_between(dvr, camera_id, start, end)
         except SpaceMonkeyError as err:
             raise Unresolvable(str(err)) from err
         if not parts:
@@ -282,7 +285,7 @@ class VivintMediaSource(MediaSource):
         token = secrets.token_urlsafe(24)
         playbacks[token] = Playback(
             dvr=dvr,
-            camera_id=int(camera_id),
+            camera_id=camera_id,
             playlist=build_playlist(parts),
             segments={
                 recording.id: range(segments[0].number, segments[-1].number + 1)
