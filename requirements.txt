@@ -9,5 +9,6 @@ colorlog
 isal
 pip>=26.2.1
 pre-commit
+pytest-homeassistant-custom-component
 ruff>=0.17.0
 zlib-ng
