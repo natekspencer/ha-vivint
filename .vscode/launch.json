@@ -11,7 +11,7 @@
       "module": "homeassistant",
       "justMyCode": false,
       "subProcess": false,
-      "args": ["--debug", "-c", "config"]
+      "args": ["--debug", "-c", "config", "--skip-pip-packages", "vivintpy"]
     }
   ]
 }
