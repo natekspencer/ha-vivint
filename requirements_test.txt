@@ -1,0 +1,7 @@
+# Integration
+vivintpy==2026.0.8
+
+# Home Assistant dependencies of the integration
+ha-ffmpeg
+numpy
+PyTurboJPEG<2 # 2.x requires libjpeg-turbo 3, newer than the system libturbojpeg0
