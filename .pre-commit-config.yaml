@@ -14,3 +14,4 @@ repos:
         name: Update LICENSE year
         entry: scripts/update_license_year.sh
         language: system
+        pass_filenames: false
