@@ -1,14 +1,13 @@
 # Home Assistant
-homeassistant>=2026.6.0
+homeassistant>=2026.8
 
 # Integration
-vivintpy
+vivintpy>=2026.0.8
 
 # Development
-colorlog
+colorlog>=6.12.0
 isal
 pip>=26.2.1
 pre-commit
-pytest-homeassistant-custom-component
 ruff>=0.17.0
 zlib-ng
