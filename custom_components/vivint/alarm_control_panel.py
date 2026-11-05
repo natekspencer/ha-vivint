@@ -16,7 +16,7 @@ from homeassistant.components.alarm_control_panel import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import VivintConfigEntry
 from .const import CONF_DISARM_CODE, DOMAIN
@@ -40,7 +40,7 @@ ARMED_STATE_MAP = {
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: VivintConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Vivint alarm control panel using config entry."""
     entities = []

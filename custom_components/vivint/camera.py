@@ -10,7 +10,7 @@ from homeassistant.components.camera import Camera, CameraEntityFeature
 from homeassistant.components.ffmpeg import async_get_image
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, format_mac
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import VivintConfigEntry
 from .const import (
@@ -38,7 +38,7 @@ RTSP_STREAM_URL_TYPE_MAP = {
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: VivintConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Vivint cameras using config entry."""
     entities = []

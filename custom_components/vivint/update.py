@@ -16,7 +16,7 @@ from homeassistant.components.update import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import VivintConfigEntry
 from .hub import VivintBaseEntity, VivintHub
@@ -31,7 +31,7 @@ FIRMWARE_UPDATE_ENTITY = UpdateEntityDescription(
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: VivintConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Vivint update platform."""
     hub: VivintHub = entry.runtime_data
