@@ -106,9 +106,9 @@ class VivintCameraEntity(VivintEntity, Camera):
         super().__init__(device=device, hub=hub)
         Camera.__init__(self)
 
-        self._attr_device_info.setdefault("connections", set()).add(
+        self._attr_device_info["connections"] = {
             (CONNECTION_NETWORK_MAC, format_mac(device.mac_address))
-        )
+        }
 
         self.__hd_stream = hd_stream
         self.__rtsp_stream = rtsp_stream
