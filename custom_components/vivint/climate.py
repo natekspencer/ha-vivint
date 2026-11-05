@@ -126,8 +126,7 @@ class VivintClimate(VivintEntity, ClimateEntity):
         | ClimateEntityFeature.TURN_ON
         | ClimateEntityFeature.TURN_OFF
     )
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    _enable_turn_on_off_backwards_compatibility = False
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
 
     def __init__(self, device: Thermostat, hub: VivintHub) -> None:
         """Pass coordinator to CoordinatorEntity."""
@@ -146,7 +145,7 @@ class VivintClimate(VivintEntity, ClimateEntity):
         return f"{self.device.alarm_panel.id}-{self.device.id}"
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         """Return the current temperature."""
         return self.device.temperature
 
@@ -156,7 +155,7 @@ class VivintClimate(VivintEntity, ClimateEntity):
         return self.device.humidity
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         """Return the temperature we try to reach."""
         if self.hvac_mode == HVACMode.HEAT:
             return self.device.heat_set_point
@@ -165,18 +164,26 @@ class VivintClimate(VivintEntity, ClimateEntity):
         return None
 
     @property
-    def target_temperature_high(self) -> float | None:
+    def native_target_temperature_high(self) -> float | None:
         """Return the highbound target temperature we try to reach."""
         return (
             None if self.hvac_mode != HVACMode.HEAT_COOL else self.device.cool_set_point
         )
 
     @property
-    def target_temperature_low(self) -> float | None:
+    def native_target_temperature_low(self) -> float | None:
         """Return the lowbound target temperature we try to reach."""
         return (
             None if self.hvac_mode != HVACMode.HEAT_COOL else self.device.heat_set_point
         )
+
+    # Home Assistant before 2026.11 only reads the names without the native prefix.
+    # Remove these once the minimum in hacs.json reaches 2026.11.
+    _attr_temperature_unit = _attr_native_temperature_unit
+    current_temperature = native_current_temperature
+    target_temperature = native_target_temperature
+    target_temperature_high = native_target_temperature_high
+    target_temperature_low = native_target_temperature_low
 
     @property
     def max_temp(self) -> float | None:

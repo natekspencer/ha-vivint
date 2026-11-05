@@ -17,7 +17,6 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.trigger import TriggerActionType, TriggerInfo
 from homeassistant.helpers.typing import ConfigType
 
-from . import VivintConfigEntry
 from .const import DOMAIN, EVENT_TYPE
 from .hub import VivintHub
 
@@ -43,11 +42,8 @@ async def async_get_vivint_device(
         return None
 
     [panel_id, vivint_device_id] = [int(item) for item in identifier.split("-")]
-    for config_entry_id in device_entry.config_entries:
-        config_entry: VivintConfigEntry | None
-        if not (config_entry := hass.config_entries.async_get_entry(config_entry_id)):
-            continue
-
+    # A device shared with another integration may report that integration's entry
+    for config_entry in hass.config_entries.async_loaded_entries(DOMAIN):
         hub: VivintHub = config_entry.runtime_data
         for system in hub.account.systems:
             if system.id != panel_id:

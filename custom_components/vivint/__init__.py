@@ -96,14 +96,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> bo
     @callback
     def async_on_device_deleted(device: VivintDevice) -> None:
         _LOGGER.debug("Device deleted: %s", device)
-        device = dev_reg.async_get_device({get_device_id(device)})
+        device = dev_reg.async_get_device_by_identifier(
+            get_device_id(device), entry.entry_id
+        )
         if device:
             dev_reg.async_remove_device(device.id)
 
     @callback
     def async_on_device_event(event_type: str, viv_device: VivintDevice) -> None:
         """Relay Vivint device event to hass."""
-        device = dev_reg.async_get_device({get_device_id(viv_device)})
+        device = dev_reg.async_get_device_by_identifier(
+            get_device_id(viv_device), entry.entry_id
+        )
         hass.bus.async_fire(
             EVENT_TYPE,
             {
