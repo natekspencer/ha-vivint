@@ -43,19 +43,22 @@ async def async_get_vivint_device(
         return None
 
     [panel_id, vivint_device_id] = [int(item) for item in identifier.split("-")]
-    for config_entry_id in device_entry.config_entries:
-        config_entry: VivintConfigEntry | None
-        if not (config_entry := hass.config_entries.async_get_entry(config_entry_id)):
-            continue
+    config_entry: VivintConfigEntry | None
+    if not (
+        config_entry := hass.config_entries.async_get_entry(
+            device_entry.config_entry_id
+        )
+    ):
+        return None
 
-        hub: VivintHub = config_entry.runtime_data
-        for system in hub.account.systems:
-            if system.id != panel_id:
-                continue
-            for alarm_panel in system.alarm_panels:
-                for device in alarm_panel.devices:
-                    if device.id == vivint_device_id:
-                        return device
+    hub: VivintHub = config_entry.runtime_data
+    for system in hub.account.systems:
+        if system.id != panel_id:
+            continue
+        for alarm_panel in system.alarm_panels:
+            for device in alarm_panel.devices:
+                if device.id == vivint_device_id:
+                    return device
     return None
 
 
