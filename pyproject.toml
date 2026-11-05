@@ -10,3 +10,7 @@ known-first-party = ["homeassistant", "tests"]
 forced-separate = ["tests"]
 combine-as-imports = true
 split-on-trailing-comma = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

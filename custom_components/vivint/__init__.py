@@ -8,6 +8,7 @@ from aiohttp.client_exceptions import ClientConnectorError
 from vivintpy.devices import VivintDevice
 from vivintpy.devices.alarm_panel import DEVICE_DELETED, DEVICE_DISCOVERED
 from vivintpy.devices.camera import DOORBELL_DING, MOTION_DETECTED, Camera
+from vivintpy.devices.thermostat import Thermostat
 from vivintpy.devices.wireless_sensor import WirelessSensor
 from vivintpy.enums import CapabilityCategoryType
 from vivintpy.exceptions import (
@@ -91,6 +92,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> bo
         if isinstance(device, WirelessSensor):
             async_dispatcher_send(
                 hass, f"{DOMAIN}_{entry.entry_id}_add_binary_sensor", device
+            )
+        if isinstance(device, Thermostat):
+            async_dispatcher_send(
+                hass, f"{DOMAIN}_{entry.entry_id}_add_climate", device
             )
 
     @callback
