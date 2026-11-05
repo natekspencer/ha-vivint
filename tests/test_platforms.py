@@ -7,11 +7,19 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.vivint import PLATFORMS
-from homeassistant.const import Platform
+from custom_components.vivint.const import DOMAIN
+from homeassistant.components.climate import (
+    ATTR_CURRENT_TEMPERATURE,
+    ATTR_TARGET_TEMP_HIGH,
+    ATTR_TARGET_TEMP_LOW,
+    HVACMode,
+)
+from homeassistant.const import ATTR_TEMPERATURE, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from . import setup_integration
+from . import PANEL_ID, MockConfigEntry, setup_integration
+from .conftest import THERMOSTAT_ID
 
 EXPECTED_UNIQUE_IDS = {
     Platform.ALARM_CONTROL_PANEL: {"1"},
@@ -81,3 +89,22 @@ async def test_entities_created_before_panel_device(
 
     entities = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
     assert {entity.unique_id for entity in entities} == {"1-51"}
+
+
+async def test_climate_temperatures(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """Test the thermostat reports its temperatures."""
+    entity_id = er.async_get(hass).async_get_entity_id(
+        Platform.CLIMATE, DOMAIN, f"{PANEL_ID}-{THERMOSTAT_ID}"
+    )
+    assert entity_id is not None
+
+    state = hass.states.get(entity_id)
+
+    assert state is not None
+    assert state.state == HVACMode.HEAT_COOL
+    assert state.attributes[ATTR_CURRENT_TEMPERATURE] == 21
+    assert state.attributes[ATTR_TEMPERATURE] is None
+    assert state.attributes[ATTR_TARGET_TEMP_HIGH] == 24
+    assert state.attributes[ATTR_TARGET_TEMP_LOW] == 19
