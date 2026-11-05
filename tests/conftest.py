@@ -180,9 +180,11 @@ async def remove_stop_listener(hass: HomeAssistant) -> AsyncGenerator[None]:
     listen_once = EventBus.async_listen_once
     removers = []
 
-    def tracking_listen_once(bus: EventBus, event_type: Any, listener: Any) -> Any:
-        remove = listen_once(bus, event_type, listener)
-        if listener.__name__ == "_async_save_tokens":
+    def tracking_listen_once(
+        bus: EventBus, event_type: Any, listener: Any, *args: Any, **kwargs: Any
+    ) -> Any:
+        remove = listen_once(bus, event_type, listener, *args, **kwargs)
+        if getattr(listener, "__name__", None) == "_async_save_tokens":
             removers.append(remove)
         return remove
 
