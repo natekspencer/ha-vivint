@@ -15,10 +15,13 @@ override that forces the exact Home Assistant version.
 from __future__ import annotations
 
 from functools import cache
+from http.client import HTTPException
 import json
 from pathlib import Path
 import sys
+from time import sleep
 from typing import Any
+from urllib.error import HTTPError
 from urllib.request import urlopen
 
 from packaging.version import Version
@@ -29,13 +32,32 @@ ROOT = Path(__file__).parent.parent
 TEST_PACKAGE = "pytest-homeassistant"
 # Covers older versions. Remove once the minimum in hacs.json reaches 2026.11.
 LEGACY_TEST_PACKAGE = "pytest-homeassistant-custom-component"
+# Seconds to wait before each retry of a failed PyPI request.
+RETRY_DELAYS = (2, 5, 15)
+
+
+def fetch_json(url: str) -> dict[str, Any]:
+    """Return the JSON at a URL."""
+    with urlopen(url, timeout=30) as response:
+        return json.load(response)
 
 
 @cache
 def pypi(path: str) -> dict[str, Any]:
-    """Return the PyPI JSON for a package or a package release."""
-    with urlopen(f"https://pypi.org/pypi/{path}/json", timeout=30) as response:
-        return json.load(response)
+    """Return the PyPI JSON for a package or a package release.
+
+    Retries network errors and server errors, but not a missing package.
+    """
+    url = f"https://pypi.org/pypi/{path}/json"
+    for delay in RETRY_DELAYS:
+        try:
+            return fetch_json(url)
+        except (OSError, HTTPException) as err:
+            if isinstance(err, HTTPError) and err.code < 500 and err.code != 429:
+                raise
+            print(f"Retrying {url} in {delay}s: {err}", file=sys.stderr)
+            sleep(delay)
+    return fetch_json(url)
 
 
 def releases(package: str) -> list[Version]:
