@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 from vivintpy.devices.camera import DOORBELL_DING, MOTION_DETECTED
 
@@ -53,3 +55,33 @@ async def test_unknown_device_raises(
     """Test an unknown device registry id is rejected."""
     with pytest.raises(ValueError):
         await async_get_triggers(hass, "unknown")
+
+
+async def test_device_shared_with_another_integration(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """Test a device reporting another integration's entry still gets its triggers.
+
+    A device id from before devices were split per config entry resolves to a
+    composite device, whose config entry may belong to the other integration.
+    """
+    composite = MagicMock(
+        identifiers={(DOMAIN, f"{PANEL_ID}-{CAMERA_ID}")},
+        config_entry_id="other-integration",
+    )
+
+    with patch.object(dr.DeviceRegistry, "async_get", return_value=composite):
+        triggers = await async_get_triggers(hass, "composite-device-id")
+
+    assert len(triggers) == 2
+
+
+async def test_unloaded_entry_has_no_triggers(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """Test a device of an unloaded entry offers no triggers."""
+    device_id = get_device_id(hass, init_integration, CAMERA_ID)
+
+    await hass.config_entries.async_unload(init_integration.entry_id)
+
+    assert await async_get_triggers(hass, device_id) == []

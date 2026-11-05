@@ -5,6 +5,9 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
+from vivintpy.const import ThermostatAttribute
+from vivintpy.devices.thermostat import Thermostat
+from vivintpy.enums import OperatingMode
 
 from custom_components.vivint import PLATFORMS
 from custom_components.vivint.const import DOMAIN
@@ -15,7 +18,7 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.const import ATTR_TEMPERATURE, Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import entity_registry as er
 
 from . import PANEL_ID, MockConfigEntry, setup_integration
@@ -91,20 +94,49 @@ async def test_entities_created_before_panel_device(
     assert {entity.unique_id for entity in entities} == {"1-51"}
 
 
-async def test_climate_temperatures(
-    hass: HomeAssistant, init_integration: MockConfigEntry
-) -> None:
-    """Test the thermostat reports its temperatures."""
+def get_climate_state(hass: HomeAssistant) -> State:
+    """Return the state of the thermostat."""
     entity_id = er.async_get(hass).async_get_entity_id(
         Platform.CLIMATE, DOMAIN, f"{PANEL_ID}-{THERMOSTAT_ID}"
     )
     assert entity_id is not None
-
     state = hass.states.get(entity_id)
-
     assert state is not None
+    return state
+
+
+async def test_climate_temperatures(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """Test the thermostat reports its temperatures."""
+    state = get_climate_state(hass)
+
     assert state.state == HVACMode.HEAT_COOL
     assert state.attributes[ATTR_CURRENT_TEMPERATURE] == 21
     assert state.attributes[ATTR_TEMPERATURE] is None
     assert state.attributes[ATTR_TARGET_TEMP_HIGH] == 24
     assert state.attributes[ATTR_TARGET_TEMP_LOW] == 19
+
+
+@pytest.mark.parametrize(
+    ("operating_mode", "hvac_mode", "target"),
+    [(OperatingMode.HEAT, HVACMode.HEAT, 19), (OperatingMode.COOL, HVACMode.COOL, 24)],
+)
+async def test_climate_single_target(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    operating_mode: OperatingMode,
+    hvac_mode: HVACMode,
+    target: float,
+) -> None:
+    """Test the thermostat reports the set point of its current mode."""
+    (system,) = init_integration.runtime_data.account.systems
+    (thermostat,) = system.alarm_panels[0].get_devices([Thermostat])
+
+    thermostat.update_data({ThermostatAttribute.OPERATING_MODE: operating_mode.value})
+
+    state = get_climate_state(hass)
+    assert state.state == hvac_mode
+    assert state.attributes[ATTR_TEMPERATURE] == target
+    assert state.attributes[ATTR_TARGET_TEMP_HIGH] is None
+    assert state.attributes[ATTR_TARGET_TEMP_LOW] is None
