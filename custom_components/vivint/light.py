@@ -6,7 +6,7 @@ from vivintpy.devices.switch import MultilevelSwitch
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import VivintConfigEntry
 from .hub import VivintEntity, VivintHub
@@ -15,7 +15,7 @@ from .hub import VivintEntity, VivintHub
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: VivintConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Vivint lights using config entry."""
     entities = []

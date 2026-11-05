@@ -17,7 +17,7 @@ from vivintpy.enums import (
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import VivintConfigEntry
 from .hub import VivintBaseEntity, VivintHub, has_capability, has_feature
@@ -26,7 +26,7 @@ from .hub import VivintBaseEntity, VivintHub, has_capability, has_feature
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: VivintConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Vivint switches using config entry."""
     entities = []

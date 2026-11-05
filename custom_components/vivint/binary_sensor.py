@@ -20,7 +20,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.event import async_call_later
 from homeassistant.util.dt import utcnow
 
@@ -38,7 +38,7 @@ ENTITY_DESCRIPTION_MOTION = BinarySensorEntityDescription(
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: VivintConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Vivint binary sensors using config entry."""
     entities = []
