@@ -69,7 +69,6 @@ class VivintAlarmControlPanelEntity(VivintEntity, AlarmControlPanelEntity):
 
     device: AlarmPanel
 
-    _attr_changed_by = None
     _attr_code_arm_required = False
     _attr_supported_features = Feature.ARM_HOME | Feature.ARM_AWAY | Feature.TRIGGER
 
@@ -82,6 +81,11 @@ class VivintAlarmControlPanelEntity(VivintEntity, AlarmControlPanelEntity):
         if disarm_code:
             self._attr_code_format = CodeFormat.NUMBER
             self._disarm_code = disarm_code
+
+    @property
+    def changed_by(self) -> str | None:
+        """Return what last armed or disarmed the panel."""
+        return self.device.changed_by
 
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:

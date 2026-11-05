@@ -11,6 +11,7 @@ from vivintpy.enums import OperatingMode
 
 from custom_components.vivint import PLATFORMS
 from custom_components.vivint.const import DOMAIN
+from homeassistant.components.alarm_control_panel import ATTR_CHANGED_BY
 from homeassistant.components.climate import (
     ATTR_CURRENT_TEMPERATURE,
     ATTR_TARGET_TEMP_HIGH,
@@ -140,3 +141,29 @@ async def test_climate_single_target(
     assert state.attributes[ATTR_TEMPERATURE] == target
     assert state.attributes[ATTR_TARGET_TEMP_HIGH] is None
     assert state.attributes[ATTR_TARGET_TEMP_LOW] is None
+
+
+async def test_alarm_panel_changed_by(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """Test the alarm panel reports what armed it."""
+    entity_id = er.async_get(hass).async_get_entity_id(
+        Platform.ALARM_CONTROL_PANEL, DOMAIN, str(PANEL_ID)
+    )
+    assert entity_id is not None
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.attributes[ATTR_CHANGED_BY] is None
+
+    init_integration.runtime_data.account.handle_pubnub_message(
+        {
+            "t": "account_system",
+            "op": "u",
+            "panid": PANEL_ID,
+            "da": {"seca": {"n": "Person", "s": 0}},
+        }
+    )
+
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.attributes[ATTR_CHANGED_BY] == "Person"
