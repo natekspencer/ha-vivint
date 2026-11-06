@@ -209,7 +209,7 @@ async def start_reauth_flow(hass: HomeAssistant, entry: MockConfigEntry) -> Flow
 
 async def test_reauth_flow(hass: HomeAssistant, mock_api: MagicMock) -> None:
     """Test the password entered for reauthentication is used, and not saved."""
-    entry = create_entry(hass, data=ENTRY_DATA)
+    entry = create_entry(hass, data=ENTRY_DATA | {CONF_REFRESH_TOKEN: "rejected-token"})
     result = await start_reauth_flow(hass, entry)
     mock_api.connect.assert_not_awaited()
 
