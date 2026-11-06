@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import Generator
 import copy
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -18,7 +18,7 @@ from vivintpy.enums import (
     SensorType,
 )
 
-from homeassistant.core import EventBus, HomeAssistant
+from homeassistant.core import HomeAssistant
 
 from . import PANEL_ID, REFRESH_TOKEN, MockConfigEntry, setup_integration
 
@@ -169,32 +169,6 @@ def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Enable custom integrations in all tests."""
 
 
-@pytest.fixture(autouse=True)
-async def remove_stop_listener(hass: HomeAssistant) -> AsyncGenerator[None]:
-    """Remove the stop listeners that async_setup_entry leaves behind.
-
-    The hass fixture unloads entries before stopping, and the listeners then fail
-    because the entry has no runtime data. Delete this once they are removed on
-    unload, see test_unload_removes_stop_listener.
-    """
-    listen_once = EventBus.async_listen_once
-    removers = []
-
-    def tracking_listen_once(
-        bus: EventBus, event_type: Any, listener: Any, *args: Any, **kwargs: Any
-    ) -> Any:
-        remove = listen_once(bus, event_type, listener, *args, **kwargs)
-        if getattr(listener, "__name__", None) == "_async_save_tokens":
-            removers.append(remove)
-        return remove
-
-    with patch.object(EventBus, "async_listen_once", tracking_listen_once):
-        yield
-
-    for remove in removers:
-        remove()
-
-
 @pytest.fixture
 def mock_pubnub() -> Generator[MagicMock]:
     """Mock the PubNub client used for realtime updates."""
@@ -208,7 +182,7 @@ def mock_api(mock_pubnub: MagicMock) -> Generator[MagicMock]:
     with patch("vivintpy.account.VivintSkyApi", autospec=True) as api_cls:
         api = api_cls.return_value
         api.tokens = {"refresh_token": REFRESH_TOKEN}
-        api.connect.side_effect = lambda: copy.deepcopy(AUTH_USER)
+        api.connect.side_effect = lambda password=None: copy.deepcopy(AUTH_USER)
         api.get_authuser_data.side_effect = lambda: copy.deepcopy(AUTH_USER)
         api.get_system_data.side_effect = lambda _: copy.deepcopy(SYSTEM)
         api.get_system_update.return_value = {}

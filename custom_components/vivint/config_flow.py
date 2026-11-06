@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import logging
 from typing import Any
 
@@ -95,7 +96,7 @@ class VivintConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Vivint."""
 
     VERSION = 1
-    MINOR_VERSION = 3
+    MINOR_VERSION = 4
 
     def __init__(self) -> None:
         """Initialize a config flow."""
@@ -108,7 +109,6 @@ class VivintConfigFlow(ConfigFlow, domain=DOMAIN):
         # pylint: disable=protected-access
         config_data = {
             CONF_USERNAME: self._hub._data[CONF_USERNAME],
-            CONF_PASSWORD: self._hub._data[CONF_PASSWORD],
             CONF_REFRESH_TOKEN: self._hub.account.refresh_token,
         }
 
@@ -194,25 +194,23 @@ class VivintConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return await self._async_create_entry()
 
-    async def async_step_reauth(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> FlowResult:
         """Perform reauth upon an API authentication error."""
-        return await self.async_step_reauth_confirm(user_input)
+        return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Dialog that informs the user that reauth is required."""
+        schema = self.add_suggested_values_to_schema(
+            STEP_USER_DATA_SCHEMA,
+            {CONF_USERNAME: self._get_reauth_entry().data[CONF_USERNAME]},
+        )
         if user_input is None:
-            return self.async_show_form(
-                step_id="reauth_confirm", data_schema=STEP_USER_DATA_SCHEMA
-            )
+            return self.async_show_form(step_id="reauth_confirm", data_schema=schema)
 
         return await self.async_vivint_login(
-            step_id="reauth_confirm",
-            user_input=user_input,
-            schema=STEP_USER_DATA_SCHEMA,
+            step_id="reauth_confirm", user_input=user_input, schema=schema
         )
 
     @staticmethod
