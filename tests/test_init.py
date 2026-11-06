@@ -122,6 +122,24 @@ async def test_setup_retries_on_connection_error(
     assert entry.state is ConfigEntryState.SETUP_RETRY
 
 
+@pytest.mark.parametrize(
+    "error",
+    [VivintSkyApiAuthenticationError("Rejected"), VivintSkyApiError("Unavailable")],
+)
+async def test_failed_setup_cleans_up(
+    hass: HomeAssistant, mock_api: MagicMock, error: Exception
+) -> None:
+    """Test a failed setup leaves no session or update listener behind."""
+    mock_api.connect.side_effect = error
+    entry = create_entry(hass)
+
+    assert not await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.runtime_data.session.closed
+    assert not entry.update_listeners
+
+
 async def test_removes_stale_devices(hass: HomeAssistant, mock_api: MagicMock) -> None:
     """Test devices no longer on the account are removed on setup."""
     entry = create_entry(hass)

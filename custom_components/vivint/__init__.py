@@ -91,6 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> bo
 
     hub = VivintHub(hass, entry.data, undo_listener, async_save_refresh_token)
     entry.runtime_data = hub
+    entry.async_on_unload(hub.disconnect)
 
     try:
         await hub.login(load_devices=True, subscribe_for_realtime_updates=True)
