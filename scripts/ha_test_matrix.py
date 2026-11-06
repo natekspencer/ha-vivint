@@ -24,6 +24,7 @@ from typing import Any
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
+from packaging.requirements import Requirement
 from packaging.version import Version
 
 ROOT = Path(__file__).parent.parent
@@ -77,12 +78,22 @@ def declared_minimum() -> Version:
     return Version(json.loads((ROOT / "hacs.json").read_text())["homeassistant"])
 
 
+def homeassistant_pin(requires: list[str]) -> Version | None:
+    """Return the exact Home Assistant version in a list of requirements, if any."""
+    for requirement in map(Requirement, requires):
+        if requirement.name == "homeassistant":
+            for specifier in requirement.specifier:
+                if specifier.operator == "==":
+                    return Version(specifier.version)
+    return None
+
+
 def legacy_test_package(target: Version) -> str:
     """Return the newest legacy test package not newer than the target version."""
     for release in releases(LEGACY_TEST_PACKAGE):
         requires = pypi(f"{LEGACY_TEST_PACKAGE}/{release}")["info"]["requires_dist"]
-        pin = next(req for req in requires if req.startswith("homeassistant=="))
-        if Version(pin.removeprefix("homeassistant==")) <= target:
+        pin = homeassistant_pin(requires or [])
+        if pin is not None and pin <= target:
             return f"{LEGACY_TEST_PACKAGE}=={release}"
     raise SystemExit(f"No test package found for Home Assistant {target}")
 
