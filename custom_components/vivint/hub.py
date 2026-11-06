@@ -27,6 +27,7 @@ from vivintpy.exceptions import (
 
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import DeviceInfo, EntityDescription
 from homeassistant.helpers.update_coordinator import (
@@ -64,11 +65,16 @@ class VivintHub:
     """A Vivint hub wrapper class."""
 
     def __init__(
-        self, hass: HomeAssistant, data: dict, undo_listener: Callable | None = None
+        self,
+        hass: HomeAssistant,
+        data: dict,
+        undo_listener: Callable | None = None,
+        on_refresh_token_changed: Callable[[str], None] | None = None,
     ) -> None:
         """Initialize the Vivint hub."""
         self._data = data
         self.__undo_listener = undo_listener
+        self.__on_refresh_token_changed = on_refresh_token_changed
         self.account: Account = None
         self.logged_in = False
         self.session = ClientSession()
@@ -76,7 +82,10 @@ class VivintHub:
 
         async def _async_update_data() -> None:
             """Update all device states from the Vivint API."""
-            return await self.account.refresh()
+            try:
+                return await self.account.refresh()
+            except VivintSkyApiAuthenticationError as ex:
+                raise ConfigEntryAuthFailed(ex) from ex
 
         self.coordinator = DataUpdateCoordinator(
             hass,
@@ -94,14 +103,15 @@ class VivintHub:
 
         self.account = Account(
             username=self._data[CONF_USERNAME],
-            password=self._data[CONF_PASSWORD],
             refresh_token=self._data.get(CONF_REFRESH_TOKEN),
             client_session=self.session,
+            on_refresh_token_changed=self.__on_refresh_token_changed,
         )
         try:
             await self.account.connect(
                 load_devices=load_devices,
                 subscribe_for_realtime_updates=subscribe_for_realtime_updates,
+                password=self._data.get(CONF_PASSWORD),
             )
             return self.save_session()
         except VivintSkyApiMfaRequiredError:

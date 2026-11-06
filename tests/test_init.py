@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from aiohttp import ClientResponseError
 from aiohttp.client_exceptions import ClientConnectorError
 import pytest
+from vivintpy.account import Account
 from vivintpy.devices.camera import MOTION_DETECTED, Camera
 from vivintpy.exceptions import (
     VivintSkyApiAuthenticationError,
@@ -14,13 +15,31 @@ from vivintpy.exceptions import (
     VivintSkyApiMfaRequiredError,
 )
 
-from custom_components.vivint.const import CONF_RTSP_STREAM, DOMAIN, EVENT_TYPE
+from custom_components.vivint.const import (
+    CONF_HD_STREAM,
+    CONF_REFRESH_TOKEN,
+    CONF_RTSP_STREAM,
+    DOMAIN,
+    EVENT_TYPE,
+)
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
-from homeassistant.const import ATTR_DEVICE_ID, EVENT_HOMEASSISTANT_STOP
+from homeassistant.const import (
+    ATTR_DEVICE_ID,
+    CONF_PASSWORD,
+    CONF_USERNAME,
+    EVENT_HOMEASSISTANT_STOP,
+)
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 
-from . import MockConfigEntry, create_entry, setup_integration
+from . import (
+    PASSWORD,
+    REFRESH_TOKEN,
+    USERNAME,
+    MockConfigEntry,
+    create_entry,
+    setup_integration,
+)
 
 
 async def test_setup_and_unload(
@@ -43,9 +62,6 @@ async def test_setup_and_unload(
     assert hub.session.closed
 
 
-@pytest.mark.xfail(
-    strict=True, reason="async_setup_entry doesn't remove its stop listener on unload"
-)
 async def test_unload_removes_stop_listener(
     hass: HomeAssistant, mock_api: MagicMock
 ) -> None:
@@ -154,7 +170,7 @@ async def test_migrates_rtsp_stream_option(
     await hass.async_block_till_done()
 
     assert entry.state is ConfigEntryState.LOADED
-    assert entry.minor_version == 3
+    assert entry.minor_version == 4
     assert entry.options[CONF_RTSP_STREAM] == "internal"
 
 
@@ -168,3 +184,67 @@ async def test_future_version_fails_migration(
     await hass.async_block_till_done()
 
     assert entry.state is ConfigEntryState.MIGRATION_ERROR
+
+
+async def test_migration_removes_the_password(
+    hass: HomeAssistant, mock_api: MagicMock
+) -> None:
+    """Test a saved password is removed and the refresh token is used to log in."""
+    entry = create_entry(
+        hass,
+        minor_version=3,
+        data={
+            CONF_USERNAME: USERNAME,
+            CONF_PASSWORD: PASSWORD,
+            CONF_REFRESH_TOKEN: REFRESH_TOKEN,
+        },
+    )
+
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.minor_version == 4
+    assert entry.data == {CONF_USERNAME: USERNAME, CONF_REFRESH_TOKEN: REFRESH_TOKEN}
+    mock_api.connect.assert_awaited_once_with(None)
+
+
+async def test_new_refresh_token_is_saved_without_reloading(
+    hass: HomeAssistant, mock_api: MagicMock
+) -> None:
+    """Test a rotated token is saved right away and doesn't cause a reload."""
+    with patch("custom_components.vivint.hub.Account", wraps=Account) as account_cls:
+        entry = await setup_integration(hass)
+    save_token = account_cls.call_args.kwargs["on_refresh_token_changed"]
+
+    save_token("new-token")
+    await hass.async_block_till_done()
+
+    assert entry.data[CONF_REFRESH_TOKEN] == "new-token"
+    assert entry.state is ConfigEntryState.LOADED
+    mock_api.connect.assert_awaited_once()
+
+
+async def test_new_options_reload(hass: HomeAssistant, mock_api: MagicMock) -> None:
+    """Test changing the options reloads the integration."""
+    entry = await setup_integration(hass)
+
+    hass.config_entries.async_update_entry(entry, options={CONF_HD_STREAM: False})
+    await hass.async_block_till_done()
+
+    assert mock_api.connect.await_count == 2
+    assert entry.state is ConfigEntryState.LOADED
+
+
+async def test_rejected_token_during_an_update_starts_reauth(
+    hass: HomeAssistant, mock_api: MagicMock, init_integration: MockConfigEntry
+) -> None:
+    """Test the user is asked to log in when a running session can't be renewed."""
+    mock_api.get_authuser_data.side_effect = VivintSkyApiAuthenticationError("Rejected")
+
+    await init_integration.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+
+    (flow,) = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert flow["context"]["source"] == "reauth"
+    assert flow["step_id"] == "reauth_confirm"

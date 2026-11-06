@@ -32,7 +32,7 @@ from homeassistant.data_entry_flow import FlowResult, FlowResultType
 from . import PASSWORD, REFRESH_TOKEN, USERNAME, MockConfigEntry, create_entry
 
 USER_INPUT = {CONF_USERNAME: USERNAME, CONF_PASSWORD: PASSWORD}
-ENTRY_DATA = USER_INPUT | {CONF_REFRESH_TOKEN: REFRESH_TOKEN}
+ENTRY_DATA = {CONF_USERNAME: USERNAME, CONF_REFRESH_TOKEN: REFRESH_TOKEN}
 
 LOGIN_ERRORS = [
     (VivintSkyApiAuthenticationError("Rejected"), "invalid_auth"),
@@ -198,15 +198,34 @@ async def test_mfa_flow_errors(
     assert result["type"] is FlowResultType.CREATE_ENTRY
 
 
-async def test_reauth_flow(hass: HomeAssistant, mock_api: MagicMock) -> None:
-    """Test stored credentials that still work finish reauthentication right away."""
-    entry = create_entry(hass)
-
+async def start_reauth_flow(hass: HomeAssistant, entry: MockConfigEntry) -> FlowResult:
+    """Start reauthentication, which always asks for the password."""
     result = await entry.start_reauth_flow(hass)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"] is None
+    return result
+
+
+async def test_reauth_flow(hass: HomeAssistant, mock_api: MagicMock) -> None:
+    """Test the password entered for reauthentication is used, and not saved."""
+    entry = create_entry(hass, data=ENTRY_DATA)
+    result = await start_reauth_flow(hass, entry)
+    mock_api.connect.assert_not_awaited()
+
+    schema = result["data_schema"].schema
+    username = next(key for key in schema if key == CONF_USERNAME)
+    assert username.description == {"suggested_value": USERNAME}
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
     await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
+    assert mock_api.connect.await_args_list[0].args == (PASSWORD,)
+    assert entry.data == ENTRY_DATA
     assert entry.state is ConfigEntryState.LOADED
 
 
@@ -214,25 +233,28 @@ async def test_reauth_flow(hass: HomeAssistant, mock_api: MagicMock) -> None:
 async def test_reauth_flow_errors(
     hass: HomeAssistant, mock_api: MagicMock, error: Exception, expected: str
 ) -> None:
-    """Test rejected stored credentials ask for new ones, which update the entry."""
+    """Test a failed login can be tried again."""
     entry = create_entry(hass)
     connect = mock_api.connect.side_effect
+    result = await start_reauth_flow(hass, entry)
 
     mock_api.connect.side_effect = error
-    result = await entry.start_reauth_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "reauth_confirm"
     assert result["errors"] == {"base": expected}
 
     mock_api.connect.side_effect = connect
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], USER_INPUT | {CONF_PASSWORD: "new-password"}
+        result["flow_id"], USER_INPUT
     )
     await hass.async_block_till_done()
 
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
-    assert entry.data[CONF_PASSWORD] == "new-password"
+    assert CONF_PASSWORD not in entry.data
     assert entry.state is ConfigEntryState.LOADED
 
 
@@ -240,9 +262,12 @@ async def test_reauth_flow_with_mfa(hass: HomeAssistant, mock_api: MagicMock) ->
     """Test reauthenticating an account that requires MFA."""
     entry = create_entry(hass)
     connect = mock_api.connect.side_effect
+    result = await start_reauth_flow(hass, entry)
 
     mock_api.connect.side_effect = VivintSkyApiMfaRequiredError("MFA required")
-    result = await entry.start_reauth_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "mfa"
 

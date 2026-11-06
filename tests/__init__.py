@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from custom_components.vivint import PLATFORMS
 from custom_components.vivint.const import CONF_REFRESH_TOKEN, DOMAIN
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
+from homeassistant.const import CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
@@ -35,12 +35,8 @@ def create_entry(
             "unique_id": DOMAIN,
             "title": USERNAME,
             "version": 1,
-            "minor_version": 3,
-            "data": {
-                CONF_USERNAME: USERNAME,
-                CONF_PASSWORD: PASSWORD,
-                CONF_REFRESH_TOKEN: REFRESH_TOKEN,
-            },
+            "minor_version": 4,
+            "data": {CONF_USERNAME: USERNAME, CONF_REFRESH_TOKEN: REFRESH_TOKEN},
             **kwargs,
         }
     )

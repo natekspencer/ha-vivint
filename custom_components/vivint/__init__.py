@@ -20,6 +20,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_DEVICE_ID,
     ATTR_DOMAIN,
+    CONF_PASSWORD,
     EVENT_HOMEASSISTANT_STOP,
     Platform,
 )
@@ -70,9 +71,25 @@ STREAM_MIGRATION_MAP = {
 
 async def async_setup_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> bool:
     """Set up Vivint from a config entry."""
-    undo_listener = entry.add_update_listener(update_listener)
+    loaded_options = entry.options
 
-    hub = VivintHub(hass, entry.data, undo_listener)
+    async def async_reload_on_options_change(
+        hass: HomeAssistant, entry: VivintConfigEntry
+    ) -> None:
+        """Reload for new options, and not for the tokens saved to the entry."""
+        if entry.options != loaded_options:
+            await hass.config_entries.async_reload(entry.entry_id)
+
+    @callback
+    def async_save_refresh_token(token: str) -> None:
+        """Save a new refresh token right away, as the old one no longer works."""
+        hass.config_entries.async_update_entry(
+            entry, data=entry.data | {CONF_REFRESH_TOKEN: token}
+        )
+
+    undo_listener = entry.add_update_listener(async_reload_on_options_change)
+
+    hub = VivintHub(hass, entry.data, undo_listener, async_save_refresh_token)
     entry.runtime_data = hub
 
     try:
@@ -174,15 +191,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> bo
         if device not in known_devices:
             dev_reg.async_remove_device(device.id)
 
-    @callback
-    async def _async_save_tokens(ev: Event) -> None:
-        """Save tokens to the config entry data."""
-        await entry.runtime_data.disconnect()
-        hass.config_entries.async_update_entry(
-            entry, data=entry.data | {CONF_REFRESH_TOKEN: hub.account.refresh_token}
-        )
+    async def _async_disconnect(ev: Event) -> None:
+        """Disconnect when Home Assistant stops."""
+        await hub.disconnect()
 
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _async_save_tokens)
+    entry.async_on_unload(
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _async_disconnect)
+    )
 
     return True
 
@@ -221,6 +236,10 @@ async def async_migrate_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> 
                 entry, minor_version=3, options=options
             )
 
+        if entry.minor_version < 4:
+            data = {k: v for k, v in entry.data.items() if k != CONF_PASSWORD}
+            hass.config_entries.async_update_entry(entry, minor_version=4, data=data)
+
     _LOGGER.debug(
         "Migration to version %s.%s successful",
         entry.version,
@@ -228,8 +247,3 @@ async def async_migrate_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> 
     )
 
     return True
-
-
-async def update_listener(hass: HomeAssistant, entry: VivintConfigEntry) -> None:
-    """Handle options update."""
-    await hass.config_entries.async_reload(entry.entry_id)
