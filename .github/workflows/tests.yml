@@ -191,7 +191,8 @@ jobs:
           while IFS=$'\t' read -r channel version url; do
             # One issue per monthly release, so each beta doesn't open another
             title="Tests fail on Home Assistant $(cut -d. -f1,2 <<< "$version")"
-            if ! gh issue list --state open --search "in:title \"$title\"" --json title --jq '.[].title' | grep -qxF "$title"; then
+            existing=$(gh issue list --state open --search "in:title \"$title\"" --json title --jq '.[].title')
+            if ! grep -qxF "$title" <<< "$existing"; then
               gh issue create --title "$title" --body "Tests fail on Home Assistant $version ($channel): $url"
             fi
           done

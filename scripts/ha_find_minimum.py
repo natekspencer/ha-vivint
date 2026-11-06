@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Print the lowest Home Assistant version newer than hacs.json that tests pass on.
 
-Tries each release up to the latest stable one, oldest first. Prints nothing if
-the tests fail on all of them.
+Retests the minimum first, in case its failure was transient. Then tries each
+release up to the latest stable one, oldest first. Prints nothing if the tests
+pass on the minimum or fail on all of the newer releases.
 """
 
 from __future__ import annotations
@@ -56,6 +57,8 @@ def main() -> None:
         if minimum < version <= stable and not version.is_prerelease
     )
     available = releases(TEST_PACKAGE)
+    if tests_pass(minimum, available):
+        return
     for version in candidates:
         if tests_pass(version, available):
             print(version)
