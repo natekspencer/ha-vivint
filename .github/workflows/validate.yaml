@@ -2,9 +2,25 @@ name: Validate repo
 
 on:
   push:
+    branches:
+      - main
   pull_request:
   schedule:
+    # Daily, to catch new Home Assistant releases and betas
     - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      homeassistant-version:
+        description: Also test this Home Assistant version (e.g. 2026.8.0)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   hassfest:
@@ -22,3 +38,15 @@ jobs:
       - uses: "hacs/action@main"
         with:
           category: "integration"
+  compatibility:
+    name: Compatibility
+    permissions:
+      actions: read
+      contents: write
+      issues: write
+      pull-requests: write
+    uses: natekspencer/ha-custom-integration-actions/.github/workflows/compatibility.yml@v0
+    with:
+      homeassistant-version: ${{ inputs.homeassistant-version }}
+    secrets:
+      BUMP_PR_TOKEN: ${{ secrets.BUMP_PR_TOKEN }}
