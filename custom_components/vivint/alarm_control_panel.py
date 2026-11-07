@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from vivintpy.devices.alarm_panel import AlarmPanel
 from vivintpy.enums import ArmedState
 
@@ -17,6 +19,8 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import VivintConfigEntry
 from .const import CONF_DISARM_CODE
 from .hub import VivintEntity, VivintHub
+
+ATTR_CHANGED_BY_MESSAGE = "changed_by_message"
 
 ARMED_STATE_MAP = {
     ArmedState.DISARMED: AlarmControlPanelState.DISARMED,
@@ -79,6 +83,11 @@ class VivintAlarmControlPanelEntity(VivintEntity, AlarmControlPanelEntity):
     def changed_by(self) -> str | None:
         """Return what last armed or disarmed the panel."""
         return self.device.changed_by
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return Vivint's description of what last armed or disarmed the panel."""
+        return {ATTR_CHANGED_BY_MESSAGE: self.device.changed_by_message}
 
     @property
     def alarm_state(self) -> AlarmControlPanelState | None:
