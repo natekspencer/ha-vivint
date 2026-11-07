@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from vivintpy.const import ThermostatAttribute
@@ -10,6 +11,7 @@ from vivintpy.devices.thermostat import Thermostat
 from vivintpy.enums import OperatingMode
 
 from custom_components.vivint import PLATFORMS
+from custom_components.vivint.alarm_control_panel import ATTR_CHANGED_BY_MESSAGE
 from custom_components.vivint.const import DOMAIN
 from homeassistant.components.alarm_control_panel import ATTR_CHANGED_BY
 from homeassistant.components.climate import (
@@ -167,3 +169,44 @@ async def test_alarm_panel_changed_by(
     state = hass.states.get(entity_id)
     assert state is not None
     assert state.attributes[ATTR_CHANGED_BY] == "Person"
+    assert state.attributes[ATTR_CHANGED_BY_MESSAGE] is None
+
+
+async def test_alarm_panel_changed_by_uses_the_history(
+    hass: HomeAssistant, mock_api: MagicMock, init_integration: MockConfigEntry
+) -> None:
+    """Test the alarm panel updates with the device and message from the history."""
+    entity_id = er.async_get(hass).async_get_entity_id(
+        Platform.ALARM_CONTROL_PANEL, DOMAIN, str(PANEL_ID)
+    )
+    assert entity_id is not None
+    message = "Your home was disarmed by Person from the Keyfob"
+    mock_api.get_history = AsyncMock(
+        return_value=[
+            {
+                "icon": "disarmed",
+                "me": message,
+                "ts": "2026-11-05T17:06:00.000000",
+                "pnlctx": {"dn": "Keyfob"},
+            }
+        ]
+    )
+
+    with patch("vivintpy.system.HISTORY_RETRY_DELAYS", (0,)):
+        init_integration.runtime_data.account.handle_pubnub_message(
+            {
+                "t": "account_system",
+                "op": "u",
+                "panid": PANEL_ID,
+                "da": {"secd": {"n": "panel", "s": 0, "ts": "2026-11-05T17:06:00"}},
+            }
+        )
+        state = hass.states.get(entity_id)
+        assert state is not None
+        assert state.attributes[ATTR_CHANGED_BY] == "panel"
+        await asyncio.sleep(0.01)
+
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.attributes[ATTR_CHANGED_BY] == "Keyfob"
+    assert state.attributes[ATTR_CHANGED_BY_MESSAGE] == message
