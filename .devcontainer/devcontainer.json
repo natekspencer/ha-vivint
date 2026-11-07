@@ -2,6 +2,18 @@
 {
   "name": "Home Assistant integration development",
   "image": "mcr.microsoft.com/devcontainers/python:3-3.14-trixie",
+  // gh and Claude state lives in a named volume shared by all devcontainers, so
+  // logins and sessions survive rebuilds. Docker creates it empty if missing.
+  "mounts": [
+    "source=ha-devcontainer-state,target=/home/vscode/.devcontainer-state,type=volume"
+  ],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.devcontainer-state/claude",
+    "GH_CONFIG_DIR": "/home/vscode/.devcontainer-state/gh"
+  },
+  // A new volume is owned by root, so hand anything vscode doesn't own to it before
+  // anything writes there. Only touching those files avoids racing other containers.
+  "onCreateCommand": "sudo find /home/vscode/.devcontainer-state -ignore_readdir_race ! -user vscode -exec chown -h vscode:vscode {} + && mkdir -p /home/vscode/.devcontainer-state/claude /home/vscode/.devcontainer-state/gh && chmod 700 /home/vscode/.devcontainer-state/claude /home/vscode/.devcontainer-state/gh",
   "postCreateCommand": ".devcontainer/setup",
   "forwardPorts": [
     8123
