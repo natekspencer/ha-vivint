@@ -5,14 +5,14 @@
   // gh and Claude state lives in a named volume shared by all devcontainers, so
   // logins and sessions survive rebuilds. Docker creates it empty if missing.
   "mounts": [
-    "source=devcontainer-state,target=/home/vscode/.devcontainer-state,type=volume"
+    "source=ha-devcontainer-state,target=/home/vscode/.devcontainer-state,type=volume"
   ],
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/vscode/.devcontainer-state/claude",
     "GH_CONFIG_DIR": "/home/vscode/.devcontainer-state/gh"
   },
-  // A new volume is owned by root, so hand it to vscode before anything writes to it
-  "onCreateCommand": "sudo chown vscode:vscode /home/vscode/.devcontainer-state && mkdir -p -m 700 /home/vscode/.devcontainer-state/claude /home/vscode/.devcontainer-state/gh",
+  // A new volume is owned by root, so hand it all to vscode before anything writes to it
+  "onCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.devcontainer-state && mkdir -p /home/vscode/.devcontainer-state/claude /home/vscode/.devcontainer-state/gh && chmod 700 /home/vscode/.devcontainer-state/claude /home/vscode/.devcontainer-state/gh",
   "postCreateCommand": ".devcontainer/setup",
   "forwardPorts": [
     8123
