@@ -11,8 +11,9 @@
     "CLAUDE_CONFIG_DIR": "/home/vscode/.devcontainer-state/claude",
     "GH_CONFIG_DIR": "/home/vscode/.devcontainer-state/gh"
   },
-  // A new volume is owned by root, so hand it all to vscode before anything writes to it
-  "onCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.devcontainer-state && mkdir -p /home/vscode/.devcontainer-state/claude /home/vscode/.devcontainer-state/gh && chmod 700 /home/vscode/.devcontainer-state/claude /home/vscode/.devcontainer-state/gh",
+  // A new volume is owned by root, so hand anything vscode doesn't own to it before
+  // anything writes there. Only touching those files avoids racing other containers.
+  "onCreateCommand": "sudo find /home/vscode/.devcontainer-state -ignore_readdir_race ! -user vscode -exec chown -h vscode:vscode {} + && mkdir -p /home/vscode/.devcontainer-state/claude /home/vscode/.devcontainer-state/gh && chmod 700 /home/vscode/.devcontainer-state/claude /home/vscode/.devcontainer-state/gh",
   "postCreateCommand": ".devcontainer/setup",
   "forwardPorts": [
     8123
