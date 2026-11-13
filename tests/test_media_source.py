@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+from aiohttp import ClientPayloadError, ServerDisconnectedError
 import pytest
 from vivintpy.exceptions import SpaceMonkeyError
 from vivintpy.spacemonkey import DvrRecording
@@ -33,6 +34,8 @@ SEGMENT_COUNT = 3600
 CAMERA_ID = 27
 PANEL_ID = 4000000000000001
 SEGMENT_BYTES = b"\x47" + b"\x00" * 1000
+# not one of the origins Home Assistant allows by default
+CORS_ORIGIN = "https://receiver.example.test"
 
 
 class FakeDvr:
@@ -41,6 +44,7 @@ class FakeDvr:
     def __init__(self) -> None:
         """Initialize the fake DVR."""
         self.fail = False
+        self.segment_failure: str | None = None
 
     async def get_status(self) -> dict:
         """Return a status with two cameras, one of them disabled."""
@@ -72,7 +76,11 @@ class FakeDvr:
         self, camera_id: int, recording_id: str, number: int
     ) -> AsyncIterator[bytes]:
         """Stream a segment."""
+        if self.segment_failure == "before":
+            raise SpaceMonkeyError("DVR unreachable")
         yield SEGMENT_BYTES[:500]
+        if self.segment_failure == "midway":
+            raise SpaceMonkeyError("DVR stopped answering")
         yield SEGMENT_BYTES[500:]
 
 
@@ -218,8 +226,9 @@ async def test_resolve_and_play(
     assert play.mime_type == "application/x-mpegURL"
     assert play.url.startswith("/api/vivint/dvr/")
 
-    resp = await client.get(play.url)
+    resp = await client.get(play.url, headers={"Origin": CORS_ORIGIN})
     assert resp.status == 200
+    assert resp.headers["Access-Control-Allow-Origin"] == CORS_ORIGIN
     lines = (await resp.text()).splitlines()
     segments = [line for line in lines if line.endswith(".ts")]
     # Segments 151 to 450 cover the hour exactly, at 12 seconds each.
@@ -229,8 +238,9 @@ async def test_resolve_and_play(
     assert lines[-1] == "#EXT-X-ENDLIST"
 
     base = play.url.rsplit("/", 1)[0]
-    resp = await client.get(f"{base}/{segments[0]}")
+    resp = await client.get(f"{base}/{segments[0]}", headers={"Origin": CORS_ORIGIN})
     assert resp.status == 200
+    assert resp.headers["Access-Control-Allow-Origin"] == CORS_ORIGIN
     assert resp.headers["Content-Type"] == "video/mp2t"
     assert await resp.read() == SEGMENT_BYTES
 
@@ -239,6 +249,46 @@ async def test_resolve_and_play(
     assert (await client.get(f"{base}/{RECORDING_ID}/stream451.ts")).status == 404
     assert (await client.get(f"{base}/other/stream151.ts")).status == 404
     assert (await client.get(f"{base}/stream151.ts")).status == 404
+
+
+async def test_segment_failure_before_any_data_is_a_bad_gateway(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    dvr: FakeDvr,
+    hass_client_no_auth: ClientSessionGenerator,
+) -> None:
+    """Test a segment that can't be read at all is reported as an error."""
+    source = await media_source.async_get_media_source(hass)
+    client = await hass_client_no_auth()
+    play = await source.async_resolve_media(
+        _item(hass, _ident(entry, "HOUR", CAMERA_ID, "20261024T1800Z"))
+    )
+    dvr.segment_failure = "before"
+
+    resp = await client.get(f"{play.url.rsplit('/', 1)[0]}/{RECORDING_ID}/stream151.ts")
+
+    assert resp.status == 502
+
+
+async def test_segment_failure_midway_is_not_a_successful_response(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    dvr: FakeDvr,
+    hass_client_no_auth: ClientSessionGenerator,
+) -> None:
+    """Test a segment that fails after some data was sent ends in a failed transfer."""
+    source = await media_source.async_get_media_source(hass)
+    client = await hass_client_no_auth()
+    play = await source.async_resolve_media(
+        _item(hass, _ident(entry, "HOUR", CAMERA_ID, "20261024T1800Z"))
+    )
+    dvr.segment_failure = "midway"
+
+    resp = await client.get(f"{play.url.rsplit('/', 1)[0]}/{RECORDING_ID}/stream151.ts")
+
+    assert resp.status == 200
+    with pytest.raises((ClientPayloadError, ServerDisconnectedError)):
+        await resp.read()
 
 
 async def test_unknown_or_expired_token(

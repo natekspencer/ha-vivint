@@ -332,6 +332,8 @@ class VivintDvrView(HomeAssistantView):
     url = "/api/vivint/dvr/{token}/{path:.+}"
     name = "api:vivint:dvr"
     requires_auth = False
+    # Cast receivers fetch HLS playlists and segments with cross-origin requests
+    cors_allowed = True
 
     async def get(
         self, request: web.Request, token: str, path: str
@@ -369,4 +371,7 @@ class VivintDvrView(HomeAssistantView):
             _LOGGER.warning("Unable to stream DVR segment: %s", err)
             if not response.prepared:
                 return web.Response(status=502)
+            # part of the segment has been sent, so end the transfer with an error
+            # rather than let it finish as a short, successful response
+            raise
         return response
