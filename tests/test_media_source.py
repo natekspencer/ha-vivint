@@ -8,8 +8,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-from pytest_homeassistant_custom_component.typing import ClientSessionGenerator
 from vivintpy.exceptions import SpaceMonkeyError
 from vivintpy.spacemonkey import DvrRecording
 
@@ -20,6 +18,13 @@ from homeassistant.components.media_source import MediaSourceItem, Unresolvable
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
+
+from . import MockConfigEntry
+
+try:
+    from pytest_homeassistant.typing import ClientSessionGenerator
+except ImportError:  # Home Assistant < 2026.11
+    from pytest_homeassistant_custom_component.typing import ClientSessionGenerator
 
 RECORDING_ID = "2026-10-24-17:30:00"
 RECORDING_START = datetime(2026, 10, 24, 17, 30, tzinfo=UTC)

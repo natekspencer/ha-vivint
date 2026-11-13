@@ -224,7 +224,9 @@ class VivintMediaSource(MediaSource):
         day: str,
     ) -> BrowseMediaSource:
         """List the hours of a day of the camera that have recordings."""
-        day_start, day_end = _day_window(datetime.strptime(day, DAY_FORMAT).date())
+        day_start, day_end = _day_window(
+            datetime.strptime(day, DAY_FORMAT).replace(tzinfo=UTC).date()
+        )
         recordings = await dvr.get_recordings(camera_id)
 
         children = []
