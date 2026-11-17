@@ -28,6 +28,7 @@ from homeassistant.components.media_source import (
     PlayMedia,
     Unresolvable,
 )
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -292,6 +293,11 @@ class VivintMediaSource(MediaSource):
             raise Unresolvable(str(err)) from err
         if not parts:
             raise Unresolvable("There is no footage in that hour")
+        # the entry may have unloaded while the DVR was answering, and a token stored
+        # now would keep its DVR reachable
+        entry = self.hass.config_entries.async_get_entry(entry_id)
+        if entry is None or entry.state is not ConfigEntryState.LOADED:
+            raise Unresolvable("The Vivint integration is not loaded")
 
         playbacks: dict[str, Playback] = self.hass.data.setdefault(DATA_PLAYBACKS, {})
         now = dt_util.utcnow()

@@ -178,6 +178,28 @@ async def test_unloading_the_entry_clears_its_playbacks(
     assert not hass.data[DATA_PLAYBACKS]
 
 
+async def test_resolving_while_the_entry_unloads_stores_no_playback(
+    hass: HomeAssistant, entry: MockConfigEntry, dvr: FakeDvr
+) -> None:
+    """Test a resolution that finishes after the entry unloaded isn't kept."""
+    source = await media_source.async_get_media_source(hass)
+    get_recordings = dvr.get_recordings
+
+    async def unload_meanwhile(camera_id: int) -> list[DvrRecording]:
+        recordings = await get_recordings(camera_id)
+        entry.mock_state(hass, ConfigEntryState.UNLOAD_IN_PROGRESS)
+        return recordings
+
+    dvr.get_recordings = unload_meanwhile  # type: ignore[method-assign]
+
+    with pytest.raises(Unresolvable):
+        await source.async_resolve_media(
+            _item(hass, _ident(entry, "HOUR", CAMERA_ID, "20261024T1800Z"))
+        )
+
+    assert not hass.data.get(DATA_PLAYBACKS)
+
+
 async def test_browse_days_in_local_time(
     hass: HomeAssistant, entry: MockConfigEntry
 ) -> None:
