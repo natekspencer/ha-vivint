@@ -31,16 +31,15 @@ from homeassistant.components.media_source import (
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+from .const import DATA_PLAYBACKS, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_PLAYBACKS = f"{DOMAIN}_dvr_playbacks"
 DATA_VIEW_REGISTERED = f"{DOMAIN}_dvr_view_registered"
 
 PLAYBACK_URL = "/api/vivint/dvr/{token}/stream.m3u8"
 PLAYBACK_LIFETIME = timedelta(hours=3)
-PLAYLIST_MIME_TYPE = "application/x-mpegURL"
+PLAYLIST_MIME_TYPE = "application/vnd.apple.mpegurl"
 SEGMENT_PATH = re.compile(r"^(?P<recording>[\w:-]+)/stream(?P<number>\d+)\.ts$")
 SEGMENT_MIME_TYPE = "video/mp2t"
 
@@ -152,10 +151,20 @@ class VivintMediaSource(MediaSource):
             for system in entry.runtime_data.account.systems:
                 if not system.dvr:
                     continue
-                status = await system.dvr.get_status()
-                for camera in sorted(status["cameras"], key=lambda c: c["name"]):
-                    if camera.get("disabled"):
-                        continue
+                try:
+                    status = await system.dvr.get_status()
+                except SpaceMonkeyError as err:
+                    # one DVR that can't be reached shouldn't hide the others
+                    _LOGGER.debug("Skipping the DVR of system %s: %s", system.id, err)
+                    continue
+                cameras = [
+                    camera
+                    for camera in status.get("cameras", [])
+                    if camera.get("id") is not None
+                    and camera.get("name")
+                    and not camera.get("disabled")
+                ]
+                for camera in sorted(cameras, key=lambda c: c["name"]):
                     children.append(
                         BrowseMediaSource(
                             domain=DOMAIN,
@@ -347,7 +356,7 @@ class VivintDvrView(HomeAssistantView):
         if path == "stream.m3u8":
             return web.Response(
                 text=playback.playlist,
-                content_type="application/vnd.apple.mpegurl",
+                content_type=PLAYLIST_MIME_TYPE,
                 headers={"Cache-Control": "no-store"},
             )
 

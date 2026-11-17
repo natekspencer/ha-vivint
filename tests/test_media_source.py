@@ -12,8 +12,8 @@ import pytest
 from vivintpy.exceptions import SpaceMonkeyError
 from vivintpy.spacemonkey import DvrRecording
 
-from custom_components.vivint import media_source
-from custom_components.vivint.const import DOMAIN
+from custom_components.vivint import async_unload_entry, media_source
+from custom_components.vivint.const import DATA_PLAYBACKS, DOMAIN
 from homeassistant.components.media_player import BrowseError
 from homeassistant.components.media_source import MediaSourceItem, Unresolvable
 from homeassistant.config_entries import ConfigEntryState
@@ -128,6 +128,56 @@ async def test_browse_cameras(hass: HomeAssistant, entry: MockConfigEntry) -> No
     assert root.children[0].can_expand
 
 
+async def test_browse_cameras_skips_an_unreachable_dvr(
+    hass: HomeAssistant, entry: MockConfigEntry
+) -> None:
+    """Test a DVR that can't be reached leaves the other systems' cameras listed."""
+    broken = SimpleNamespace(
+        id=PANEL_ID + 1,
+        dvr=SimpleNamespace(get_status=AsyncMock(side_effect=SpaceMonkeyError("down"))),
+    )
+    entry.runtime_data.account.systems.insert(0, broken)
+    source = await media_source.async_get_media_source(hass)
+
+    root = await source.async_browse_media(_item(hass, None))
+
+    assert [c.title for c in root.children] == ["Doorbell"]
+
+
+async def test_browse_cameras_tolerates_an_incomplete_status(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    dvr: FakeDvr,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test a status without cameras, or a camera without an id or name, is skipped."""
+    source = await media_source.async_get_media_source(hass)
+    monkeypatch.setattr(dvr, "get_status", AsyncMock(return_value={}))
+    assert (await source.async_browse_media(_item(hass, None))).children == []
+
+    status = {
+        "cameras": [{"name": "No id"}, {"id": 5}, {"id": CAMERA_ID, "name": "Doorbell"}]
+    }
+    monkeypatch.setattr(dvr, "get_status", AsyncMock(return_value=status))
+    root = await source.async_browse_media(_item(hass, None))
+    assert [c.title for c in root.children] == ["Doorbell"]
+
+
+async def test_unloading_the_entry_clears_its_playbacks(
+    hass: HomeAssistant, entry: MockConfigEntry
+) -> None:
+    """Test the tokens of an unloaded connection stop resolving."""
+    source = await media_source.async_get_media_source(hass)
+    await source.async_resolve_media(
+        _item(hass, _ident(entry, "HOUR", CAMERA_ID, "20261024T1800Z"))
+    )
+    assert hass.data[DATA_PLAYBACKS]
+
+    await async_unload_entry(hass, entry)
+
+    assert not hass.data[DATA_PLAYBACKS]
+
+
 async def test_browse_days_in_local_time(
     hass: HomeAssistant, entry: MockConfigEntry
 ) -> None:
@@ -223,7 +273,7 @@ async def test_resolve_and_play(
     play = await source.async_resolve_media(
         _item(hass, _ident(entry, "HOUR", CAMERA_ID, "20261024T1800Z"))
     )
-    assert play.mime_type == "application/x-mpegURL"
+    assert play.mime_type == "application/vnd.apple.mpegurl"
     assert play.url.startswith("/api/vivint/dvr/")
 
     resp = await client.get(play.url, headers={"Origin": CORS_ORIGIN})

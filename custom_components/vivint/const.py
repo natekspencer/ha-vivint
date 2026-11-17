@@ -3,6 +3,9 @@
 DOMAIN = "vivint"
 EVENT_TYPE = f"{DOMAIN}_event"
 
+# playlists handed to players, keyed by token
+DATA_PLAYBACKS = f"{DOMAIN}_dvr_playbacks"
+
 RTSP_STREAM_DIRECT = "direct"
 RTSP_STREAM_INTERNAL = "internal"
 RTSP_STREAM_EXTERNAL = "external"
