@@ -1,5 +1,5 @@
 # Integration
-vivintpy==2026.4.0
+vivintpy==2026.5.0
 
 # Home Assistant dependencies of the integration
 ha-ffmpeg
