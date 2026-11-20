@@ -71,6 +71,13 @@ After this integration is set up, you can configure a couple of options relating
   - _Internal_ - use this if, for some reason, you have a camera that doesn't seem to stream despite the Vivint API indicating direct access is available for it
   - _External_ - use this option if your Vivint system and Home Assistant installation are on separate networks without access to each other
 
+## 🎞️ Recordings
+
+If your system has a Vivint DVR (Smart Drive), its continuous recordings appear in the **Media** browser under **Vivint recordings**. Pick a camera, a day, and an hour to play it back.
+
+- Recordings are streamed from the DVR on your local network, so Home Assistant must be able to reach it.
+- Only recordings stored on the DVR are shown. Event clips that Vivint stores in the cloud are not included.
+
 ---
 
 <!-- BEGIN AUTO-GENERATED FOOTER -->
