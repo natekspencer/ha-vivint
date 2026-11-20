@@ -17,7 +17,7 @@
     "vivintpy"
   ],
   "requirements": [
-    "vivintpy @ git+https://github.com/natekspencer/vivintpy@290f86d1b8b5a84983062ae34b7cdd17034fb617"
+    "vivintpy @ git+https://github.com/natekspencer/vivintpy@3f0b610cfbd9f6ee43750d3fc1ed95a87050b2a5"
   ],
   "version": "0.0.0",
   "zeroconf": [
