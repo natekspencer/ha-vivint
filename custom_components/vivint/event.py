@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from vivintpy.devices.camera import MOTION_DETECTED, Camera
+from vivintpy.devices.camera import DOORBELL_DING, MOTION_DETECTED, Camera
 from vivintpy.enums import CapabilityCategoryType
 
 from homeassistant.components.event import (
@@ -34,6 +34,13 @@ MOTION_DESCRIPTION = EventEntityDescription(
     device_class=EventDeviceClass.MOTION,
     event_types=[MOTION_DETECTED],
 )
+
+# Event names emitted by vivintpy for each entity. The doorbell entity reports
+# Home Assistant's DoorbellEventType.RING, but vivintpy emits "doorbell_ding".
+DEVICE_EVENTS = {
+    DOORBELL_DESCRIPTION.key: DOORBELL_DING,
+    MOTION_DESCRIPTION.key: MOTION_DETECTED,
+}
 
 
 async def async_setup_entry(
@@ -83,5 +90,7 @@ class VivintEventEntity(VivintBaseEntity, EventEntity):
         """Register callbacks."""
         await super().async_added_to_hass()
         self.async_on_remove(
-            self.device.on(self.event_types[0], self._async_handle_event)
+            self.device.on(
+                DEVICE_EVENTS[self.entity_description.key], self._async_handle_event
+            )
         )
