@@ -32,6 +32,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from .const import (
     CONF_REFRESH_TOKEN,
     CONF_RTSP_STREAM,
+    DATA_PLAYBACKS,
     DOMAIN,
     EVENT_TYPE,
     RTSP_STREAM_DIRECT,
@@ -205,6 +206,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> bo
 
 async def async_unload_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> bool:
     """Unload config entry."""
+    # a playback holds a DVR of the connection that is closing
+    playbacks = hass.data.get(DATA_PLAYBACKS, {})
+    for token in [t for t, p in playbacks.items() if p.entry_id == entry.entry_id]:
+        del playbacks[token]
     await entry.runtime_data.disconnect()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
