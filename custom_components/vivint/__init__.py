@@ -206,10 +206,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> bo
 
 async def async_unload_entry(hass: HomeAssistant, entry: VivintConfigEntry) -> bool:
     """Unload config entry."""
-    # a playback holds the DVR of the connection that is closing
+    # a playback holds a DVR of the connection that is closing
     playbacks = hass.data.get(DATA_PLAYBACKS, {})
-    dvrs = [s.dvr for s in entry.runtime_data.account.systems if s.dvr]
-    for token in [t for t, p in playbacks.items() if p.dvr in dvrs]:
+    for token in [t for t, p in playbacks.items() if p.entry_id == entry.entry_id]:
         del playbacks[token]
     await entry.runtime_data.disconnect()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

@@ -10,7 +10,7 @@ import math
 import re
 import secrets
 
-from aiohttp import ClientError, web
+from aiohttp import web
 from vivintpy.exceptions import SpaceMonkeyError
 from vivintpy.spacemonkey import (
     DvrRecording,
@@ -53,6 +53,7 @@ HOUR_FORMAT = "%Y%m%dT%H%MZ"
 class Playback:
     """A playlist that has been handed to a player, with what it may fetch."""
 
+    entry_id: str
     dvr: SpaceMonkeyDvr
     camera_id: int
     playlist: str
@@ -119,7 +120,7 @@ class VivintMediaSource(MediaSource):
     def _dvr(self, entry_id: str, panel_id: str) -> SpaceMonkeyDvr:
         """Return the DVR of the Vivint system, or raise if there is none."""
         entry = self.hass.config_entries.async_get_entry(entry_id)
-        if entry is None or not hasattr(entry, "runtime_data"):
+        if entry is None or entry.state is not ConfigEntryState.LOADED:
             raise BrowseError("The Vivint integration is not loaded")
         for system in entry.runtime_data.account.systems:
             if str(system.id) == panel_id and system.dvr:
@@ -196,7 +197,9 @@ class VivintMediaSource(MediaSource):
         days: set[date] = set()
         for recording in await dvr.get_recordings(camera_id):
             day = dt_util.as_local(recording.start).date()
-            last = dt_util.as_local(recording.end).date()
+            # a recording ends where the next moment begins, so one that ends at
+            # midnight doesn't reach the next day
+            last = dt_util.as_local(recording.end - timedelta(microseconds=1)).date()
             while day <= last:
                 days.add(day)
                 day += timedelta(days=1)
@@ -293,11 +296,14 @@ class VivintMediaSource(MediaSource):
             raise Unresolvable(str(err)) from err
         if not parts:
             raise Unresolvable("There is no footage in that hour")
-        # the entry may have unloaded while the DVR was answering, and a token stored
-        # now would keep its DVR reachable
-        entry = self.hass.config_entries.async_get_entry(entry_id)
-        if entry is None or entry.state is not ConfigEntryState.LOADED:
-            raise Unresolvable("The Vivint integration is not loaded")
+        # the entry may have unloaded or reloaded while the DVR was answering, and
+        # a token stored now would keep a DVR that has been disconnected
+        try:
+            current = self._dvr(entry_id, panel_id)
+        except BrowseError:
+            current = None
+        if current is not dvr:
+            raise Unresolvable("The Vivint integration was reloaded")
 
         playbacks: dict[str, Playback] = self.hass.data.setdefault(DATA_PLAYBACKS, {})
         now = dt_util.utcnow()
@@ -306,6 +312,7 @@ class VivintMediaSource(MediaSource):
 
         token = secrets.token_urlsafe(24)
         playbacks[token] = Playback(
+            entry_id=entry_id,
             dvr=dvr,
             camera_id=camera_id,
             playlist=build_playlist(parts),
@@ -382,11 +389,15 @@ class VivintDvrView(HomeAssistantView):
                     if not response.prepared:
                         await response.prepare(request)
                     await response.write(chunk)
-        except (SpaceMonkeyError, ClientError) as err:
+        except ConnectionResetError:
+            # the player went away, e.g. while seeking
+            return response
+        except SpaceMonkeyError as err:
             _LOGGER.warning("Unable to stream DVR segment: %s", err)
             if not response.prepared:
                 return web.Response(status=502)
-            # part of the segment has been sent, so end the transfer with an error
+            # part of the segment has been sent, so end the transfer as a failure
             # rather than let it finish as a short, successful response
-            raise
+            if request.transport:
+                request.transport.close()
         return response

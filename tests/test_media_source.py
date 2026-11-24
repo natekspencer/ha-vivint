@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-from aiohttp import ClientPayloadError, ServerDisconnectedError
+from aiohttp import ClientPayloadError, ServerDisconnectedError, web
 import pytest
 from vivintpy.exceptions import SpaceMonkeyError
 from vivintpy.spacemonkey import DvrRecording
@@ -200,6 +200,23 @@ async def test_resolving_while_the_entry_unloads_stores_no_playback(
     assert not hass.data.get(DATA_PLAYBACKS)
 
 
+async def test_recording_ending_at_midnight_does_not_add_the_next_day(
+    hass: HomeAssistant, entry: MockConfigEntry, dvr: FakeDvr
+) -> None:
+    """Test the day after a recording that ends exactly at local midnight is not listed."""
+    source = await media_source.async_get_media_source(hass)
+
+    async def get_recordings(camera_id: int) -> list[DvrRecording]:
+        end = datetime(2026, 10, 25, 5, 0, tzinfo=UTC)  # midnight in Chicago
+        return [DvrRecording(RECORDING_ID, camera_id, RECORDING_START, end)]
+
+    dvr.get_recordings = get_recordings  # type: ignore[method-assign]
+
+    days = await source.async_browse_media(_item(hass, _ident(entry, "CAM", CAMERA_ID)))
+
+    assert [c.title for c in days.children] == ["2026-10-24 (Saturday)"]
+
+
 async def test_browse_days_in_local_time(
     hass: HomeAssistant, entry: MockConfigEntry
 ) -> None:
@@ -361,6 +378,66 @@ async def test_segment_failure_midway_is_not_a_successful_response(
     assert resp.status == 200
     with pytest.raises((ClientPayloadError, ServerDisconnectedError)):
         await resp.read()
+
+
+async def test_player_disconnect_is_not_logged_as_a_dvr_failure(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    hass_client_no_auth: ClientSessionGenerator,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test a player that goes away mid-segment, as on every seek, logs nothing."""
+    source = await media_source.async_get_media_source(hass)
+    client = await hass_client_no_auth()
+    play = await source.async_resolve_media(
+        _item(hass, _ident(entry, "HOUR", CAMERA_ID, "20261024T1800Z"))
+    )
+    monkeypatch.setattr(
+        web.StreamResponse, "write", AsyncMock(side_effect=ConnectionResetError)
+    )
+
+    await client.get(f"{play.url.rsplit('/', 1)[0]}/{RECORDING_ID}/stream151.ts")
+
+    assert "Unable to stream" not in caplog.text
+    assert "Error handling request" not in caplog.text
+
+
+async def test_resolving_while_the_entry_reloads_stores_no_playback(
+    hass: HomeAssistant, entry: MockConfigEntry, dvr: FakeDvr
+) -> None:
+    """Test a resolution that finishes after a reload doesn't keep the old DVR."""
+    source = await media_source.async_get_media_source(hass)
+    get_recordings = dvr.get_recordings
+
+    async def reload_meanwhile(camera_id: int) -> list[DvrRecording]:
+        recordings = await get_recordings(camera_id)
+        entry.runtime_data.account.systems[0].dvr = FakeDvr()
+        return recordings
+
+    dvr.get_recordings = reload_meanwhile  # type: ignore[method-assign]
+
+    with pytest.raises(Unresolvable):
+        await source.async_resolve_media(
+            _item(hass, _ident(entry, "HOUR", CAMERA_ID, "20261024T1800Z"))
+        )
+
+    assert not hass.data.get(DATA_PLAYBACKS)
+
+
+async def test_unloading_clears_playbacks_of_a_replaced_dvr(
+    hass: HomeAssistant, entry: MockConfigEntry
+) -> None:
+    """Test tokens are purged by entry, even if their DVR is no longer current."""
+    source = await media_source.async_get_media_source(hass)
+    await source.async_resolve_media(
+        _item(hass, _ident(entry, "HOUR", CAMERA_ID, "20261024T1800Z"))
+    )
+    entry.runtime_data.account.systems[0].dvr = FakeDvr()
+
+    await async_unload_entry(hass, entry)
+
+    assert not hass.data[DATA_PLAYBACKS]
 
 
 async def test_unknown_or_expired_token(
